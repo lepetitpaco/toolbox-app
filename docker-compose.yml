@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  web:
+    container_name: toolbox_web
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://dev:dev@infra_postgres:5432/dev
+    networks:
+      - infra_net
+
+networks:
+  infra_net:
+    external: true

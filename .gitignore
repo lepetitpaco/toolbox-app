@@ -1,0 +1,17 @@
+# Node
+node_modules
+
+# Next.js
+.next
+out
+
+# Env
+.env
+.env.local
+
+# Prisma
+prisma/dev.db
+prisma/*.db
+
+# Docker
+docker-data
