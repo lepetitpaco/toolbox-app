@@ -434,6 +434,43 @@ export async function fetchUserActivities(
   }
 }
 
+// Fetch a single media by ID
+export async function fetchMediaById(mediaId: number): Promise<Media | null> {
+  try {
+    const response = await fetch(`/api/anilist/media?id=${mediaId}`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 429) {
+        throw new Error('RATE_LIMIT: Too many requests. Please wait a moment and try again.');
+      }
+      console.error('HTTP Error:', response.status, errorData);
+      if (errorData.error) {
+        throw new Error(errorData.error);
+      }
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error('API Error:', data.error);
+      if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
+        throw new Error('RATE_LIMIT: ' + data.error);
+      }
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching media by ID:', error);
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('Network error - check your internet connection');
+    }
+    throw error;
+  }
+}
+
 // Search for anime/manga with auto-completion
 export async function searchMedia(
   query: string,

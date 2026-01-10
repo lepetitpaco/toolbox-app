@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { fetchUserId, fetchUserActivities, fetchActivityReplies, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
 import styles from '../anilist.module.css';
 
@@ -17,6 +18,7 @@ interface SavedUser {
 }
 
 export default function ActivitiesPage() {
+  const router = useRouter();
   const [username, setUsername] = useState<string>('');
   const [user, setUser] = useState<AniListUser | null>(null);
   const [activities, setActivities] = useState<ActivityStatus[]>([]);
@@ -664,7 +666,16 @@ export default function ActivitiesPage() {
                     />
                   )}
                   <div className={styles.mediaDetails}>
-                    <div className={styles.mediaTitle}>
+                    <div 
+                      className={styles.mediaTitle}
+                      onClick={() => {
+                        if (activity.media?.id) {
+                          router.push(`/anilist/media-search?mediaId=${activity.media.id}`);
+                        }
+                      }}
+                      style={{ cursor: activity.media?.id ? 'pointer' : 'default' }}
+                      title={activity.media?.id ? 'Click to view media details' : ''}
+                    >
                       {activity.media.title?.romaji || activity.media.title?.english || 'Untitled'}
                     </div>
                     {activity.status && (

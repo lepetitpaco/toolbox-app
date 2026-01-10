@@ -607,6 +607,11 @@
   color: #000000;
   margin-bottom: 0.75rem;
   line-height: 1.4;
+  transition: color 0.2s ease;
+}
+
+.mediaTitle:hover {
+  color: #667eea;
 }
 
 .activityStatus,
@@ -891,6 +896,10 @@
 :global(.dark-mode) .activityUserName,
 :global(.dark-mode) .mediaTitle {
   color: #ffffff;
+}
+
+:global(.dark-mode) .mediaTitle:hover {
+  color: #8b9aff;
 }
 
 :global(.dark-mode) .activityStatus,

@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { searchMedia, Media } from '@/lib/anilist';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { searchMedia, fetchMediaById, Media } from '@/lib/anilist';
 import styles from './media-search.module.css';
 
-export default function MediaSearchPage() {
+function MediaSearchContent() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState<string>('');
   const [mediaType, setMediaType] = useState<'ALL' | 'ANIME' | 'MANGA'>('ALL');
   const [results, setResults] = useState<Media[]>([]);
@@ -14,6 +16,43 @@ export default function MediaSearchPage() {
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Load media by ID from URL parameter
+  useEffect(() => {
+    const mediaIdParam = searchParams.get('mediaId');
+    if (mediaIdParam) {
+      const mediaId = parseInt(mediaIdParam, 10);
+      if (!isNaN(mediaId)) {
+        setLoading(true);
+        setError(null);
+        fetchMediaById(mediaId)
+          .then((media) => {
+            if (media) {
+              setSelectedMedia(media);
+              setQuery(media.title?.userPreferred || media.title?.romaji || media.title?.english || '');
+              setMediaType(media.type || 'ALL');
+            } else {
+              setError('Media not found');
+            }
+          })
+          .catch((err: any) => {
+            const errorMessage = err?.message || 'An error occurred';
+            if (errorMessage.startsWith('RATE_LIMIT:') || 
+                errorMessage.includes('Too many requests') ||
+                errorMessage.includes('rate limit') ||
+                errorMessage.toLowerCase().includes('429')) {
+              setError('⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.');
+            } else {
+              setError(errorMessage);
+            }
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Handle search with debounce for auto-completion
   const performSearch = useCallback(async (searchQuery: string, type: 'ALL' | 'ANIME' | 'MANGA') => {
@@ -315,5 +354,13 @@ export default function MediaSearchPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function MediaSearchPage() {
+  return (
+    <Suspense fallback={<div className={styles.loading}>Loading...</div>}>
+      <MediaSearchContent />
+    </Suspense>
   );
 }
