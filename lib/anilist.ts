@@ -58,6 +58,53 @@ export interface ActivityPage {
   };
 }
 
+export interface Media {
+  id: number;
+  title: {
+    romaji?: string;
+    english?: string;
+    native?: string;
+    userPreferred?: string;
+  };
+  type: 'ANIME' | 'MANGA';
+  format?: string;
+  status?: string;
+  description?: string;
+  startDate?: {
+    year?: number;
+    month?: number;
+    day?: number;
+  };
+  endDate?: {
+    year?: number;
+    month?: number;
+    day?: number;
+  };
+  episodes?: number;
+  chapters?: number;
+  volumes?: number;
+  coverImage?: {
+    large?: string;
+    medium?: string;
+  };
+  bannerImage?: string;
+  genres?: string[];
+  averageScore?: number;
+  popularity?: number;
+  siteUrl?: string;
+}
+
+export interface MediaSearchResult {
+  media: Media[];
+  pageInfo: {
+    currentPage: number;
+    hasNextPage: boolean;
+    lastPage: number;
+    perPage: number;
+    total: number;
+  };
+}
+
 // GraphQL query to fetch user activities with comments
 const GET_USER_ACTIVITIES = `
   query GetUserActivities($userId: Int!, $page: Int, $perPage: Int, $type: ActivityType) {
@@ -384,5 +431,51 @@ export async function fetchUserActivities(
       console.error('Network error - check your internet connection');
     }
     return null;
+  }
+}
+
+// Search for anime/manga with auto-completion
+export async function searchMedia(
+  query: string,
+  type?: 'ANIME' | 'MANGA' | 'ALL',
+  page: number = 1,
+  perPage: number = 10
+): Promise<MediaSearchResult | null> {
+  try {
+    if (!query || query.trim().length < 2) {
+      return null;
+    }
+
+    const response = await fetch(`/api/anilist/search?query=${encodeURIComponent(query)}&type=${type || 'ALL'}&page=${page}&perPage=${perPage}`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 429) {
+        throw new Error('RATE_LIMIT: Too many requests. Please wait a moment and try again.');
+      }
+      console.error('HTTP Error:', response.status, errorData);
+      if (errorData.error) {
+        throw new Error(errorData.error);
+      }
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error('API Error:', data.error);
+      if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
+        throw new Error('RATE_LIMIT: ' + data.error);
+      }
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error searching media:', error);
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('Network error - check your internet connection');
+    }
+    throw error;
   }
 }

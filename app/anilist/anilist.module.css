@@ -1,25 +1,61 @@
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: 
+    linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%),
+    url('https://images.unsplash.com/photo-1590796583326-afd3bb20d22d?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover no-repeat;
+  background-attachment: fixed;
   padding: 2rem;
+  position: relative;
 }
 
 .header {
   max-width: 1200px;
   margin: 0 auto 2rem;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 2.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .headerTop {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.navTabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.tab:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.tabActive {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
 }
 
 .title {
@@ -63,6 +99,7 @@
 
 .searchSection {
   margin-bottom: 2rem;
+  padding: 0;
 }
 
 .searchBox {
@@ -219,11 +256,12 @@
   align-items: center;
   gap: 1rem;
   justify-content: center;
-  padding: 1.25rem;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(6px);
   border-radius: 12px;
   margin-bottom: 1.5rem;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .userAvatar {
@@ -245,12 +283,17 @@
 }
 
 .filters {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   display: flex;
   gap: 2rem;
   align-items: center;
   flex-wrap: wrap;
-  padding-top: 1.5rem;
-  border-top: 2px solid #f0f0f0;
   position: relative;
   z-index: 1;
 }
@@ -264,8 +307,8 @@
 }
 
 .filterGroup label {
-  font-weight: 600;
-  color: #555;
+  font-weight: 700;
+  color: #000000;
   font-size: 0.95rem;
 }
 
@@ -315,17 +358,24 @@
 .stats {
   margin-left: auto;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #000000;
   font-size: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .main {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0;
 }
+
+/* Content wrapper for child pages - removed to reduce layers */
 
 .loading,
 .empty,
@@ -368,11 +418,11 @@
 }
 
 .activityCard {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
@@ -393,8 +443,9 @@
 }
 
 .activityCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .activityCard:hover::before {
@@ -433,7 +484,7 @@
 .activityUserName {
   font-weight: 700;
   font-size: 1.2rem;
-  color: #1a1a1a;
+  color: #000000;
   margin-bottom: 0.5rem;
 }
 
@@ -442,7 +493,7 @@
   gap: 1rem;
   align-items: center;
   font-size: 0.9rem;
-  color: #666;
+  color: #000000;
   flex-wrap: wrap;
 }
 
@@ -469,16 +520,17 @@
 }
 
 .activityDate {
-  color: #999;
-  font-weight: 500;
+  color: #1a1a1a;
+  font-weight: 600;
 }
 
 .activityText {
-  padding: 1.25rem;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
   border-radius: 12px;
   margin-bottom: 1.25rem;
-  color: #333;
+  color: #1a1a1a;
   line-height: 1.8;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -494,13 +546,13 @@
 
 .stat {
   font-size: 1rem;
-  color: #666;
+  color: #000000;
   font-weight: 700;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(102, 126, 234, 0.08);
+  background: rgba(102, 126, 234, 0.25);
   border-radius: 20px;
   transition: all 0.3s ease;
 }
@@ -514,16 +566,17 @@
   display: flex;
   gap: 1.5rem;
   margin-bottom: 1.25rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.06) 0%, rgba(118, 75, 162, 0.06) 100%);
-  border-radius: 16px;
-  border: 1px solid rgba(102, 126, 234, 0.1);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
 
 .mediaInfo:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateX(2px);
 }
 
 .mediaCover {
@@ -551,7 +604,7 @@
 .mediaTitle {
   font-weight: 700;
   font-size: 1.25rem;
-  color: #1a1a1a;
+  color: #000000;
   margin-bottom: 0.75rem;
   line-height: 1.4;
 }
@@ -559,11 +612,11 @@
 .activityStatus,
 .activityProgress {
   font-size: 0.95rem;
-  color: #666;
+  color: #000000;
   margin-top: 0.5rem;
-  font-weight: 600;
+  font-weight: 700;
   padding: 0.5rem 1rem;
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(102, 126, 234, 0.2);
   border-radius: 8px;
   display: inline-block;
   width: fit-content;
@@ -601,8 +654,9 @@
 .commentsLoading {
   padding: 1rem;
   text-align: center;
-  color: #666;
+  color: #000000;
   font-style: italic;
+  font-weight: 600;
 }
 
 .commentsList {
@@ -612,8 +666,9 @@
 .commentsEmpty {
   padding: 1rem;
   text-align: center;
-  color: #999;
+  color: #1a1a1a;
   font-style: italic;
+  font-weight: 600;
 }
 
 .comment {
@@ -660,18 +715,18 @@
 .commentUserName {
   font-weight: 700;
   font-size: 0.95rem;
-  color: #1a1a1a;
+  color: #000000;
 }
 
 .commentDate {
   font-size: 0.8rem;
-  color: #999;
-  font-weight: 500;
+  color: #1a1a1a;
+  font-weight: 600;
 }
 
 .commentLikes {
   font-size: 0.9rem;
-  color: #666;
+  color: #000000;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -682,7 +737,7 @@
 }
 
 .commentText {
-  color: #333;
+  color: #000000;
   line-height: 1.7;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -753,6 +808,7 @@
     margin-left: 0;
   }
 
+
   .activityHeader {
     flex-direction: column;
     gap: 1rem;
@@ -781,9 +837,22 @@
 :global(.dark-mode) .activityCard,
 :global(.dark-mode) .loading,
 :global(.dark-mode) .empty {
-  background: rgba(26, 26, 26, 0.95);
+  background: rgba(26, 26, 26, 0.6);
   color: #ededed;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+:global(.dark-mode) .activityText,
+:global(.dark-mode) .mediaInfo {
+  background: rgba(26, 26, 26, 0.4);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .userInfo {
+  background: rgba(20, 20, 20, 0.85);
+  border-color: rgba(139, 154, 255, 0.4);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 :global(.dark-mode) .title {
@@ -794,7 +863,7 @@
 
 :global(.dark-mode) .searchInput {
   background: rgba(40, 40, 40, 0.8);
-  border-color: #555;
+  border-color: #666;
   color: #ededed;
 }
 
@@ -805,7 +874,7 @@
 
 :global(.dark-mode) .filterSelect {
   background: rgba(40, 40, 40, 0.8);
-  border-color: #555;
+  border-color: #666;
   color: #ededed;
 }
 
@@ -821,7 +890,15 @@
 
 :global(.dark-mode) .activityUserName,
 :global(.dark-mode) .mediaTitle {
-  color: #ededed;
+  color: #ffffff;
+}
+
+:global(.dark-mode) .activityStatus,
+:global(.dark-mode) .activityProgress {
+  color: #ffffff;
+  background: rgba(139, 154, 255, 0.4);
+  font-weight: 700;
+  border: 1px solid rgba(139, 154, 255, 0.5);
 }
 
 :global(.dark-mode) .activityText {
@@ -864,19 +941,22 @@
 }
 
 :global(.dark-mode) .userInfo {
-  background: linear-gradient(135deg, rgba(139, 154, 255, 0.15) 0%, rgba(167, 139, 250, 0.15) 100%);
-  border-color: rgba(139, 154, 255, 0.3);
+  background: rgba(20, 20, 20, 0.85);
+  border-color: rgba(139, 154, 255, 0.4);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 :global(.dark-mode) .userName {
-  background: linear-gradient(135deg, #8b9aff 0%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
 }
 
 :global(.dark-mode) .mediaInfo {
-  background: linear-gradient(135deg, rgba(139, 154, 255, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%);
-  border-color: rgba(139, 154, 255, 0.2);
+  background: rgba(26, 26, 26, 0.4);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 :global(.dark-mode) .commentsHeader {
@@ -891,7 +971,27 @@
 
 :global(.dark-mode) .commentsLoading,
 :global(.dark-mode) .commentsEmpty {
-  color: #999;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+:global(.dark-mode) .commentDate {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+:global(.dark-mode) .commentLikes {
+  color: #ffffff;
+  background: rgba(139, 154, 255, 0.3);
+  font-weight: 700;
+}
+
+:global(.dark-mode) .commentUserName {
+  color: #ffffff;
+}
+
+:global(.dark-mode) .commentText {
+  color: #ffffff;
 }
 
 :global(.dark-mode) .comment {
@@ -908,12 +1008,12 @@
 }
 
 :global(.dark-mode) .commentText {
-  color: #ccc;
+  color: #e0e0e0;
 }
 
 :global(.dark-mode) .commentLikes {
-  background: rgba(139, 154, 255, 0.15);
-  color: #bbb;
+  background: rgba(139, 154, 255, 0.2);
+  color: #ededed;
 }
 
 :global(.dark-mode) .loadMoreButton {
@@ -932,7 +1032,8 @@
 }
 
 :global(.dark-mode) .savedUsersTitle {
-  color: #bbb;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 :global(.dark-mode) .savedUserItem {
@@ -965,3 +1066,38 @@
 :global(.dark-mode) .removeUserButton:hover {
   background: rgba(255, 87, 87, 0.25);
 }
+
+:global(.dark-mode) .stats {
+  color: #ffffff;
+  background: rgba(20, 20, 20, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+  font-weight: 700;
+}
+
+:global(.dark-mode) .filters {
+  background: rgba(20, 20, 20, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+:global(.dark-mode) .filterGroup label {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+:global(.dark-mode) .tab {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+:global(.dark-mode) .tab:hover {
+  color: #8b9aff;
+  background: rgba(139, 154, 255, 0.15);
+}
+
+:global(.dark-mode) .tabActive {
+  color: #8b9aff;
+  border-bottom-color: #8b9aff;
+  background: rgba(139, 154, 255, 0.15);
+}
+
+/* Dark mode styles for main wrapper removed */

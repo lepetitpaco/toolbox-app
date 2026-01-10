@@ -17,6 +17,13 @@ const tools: Tool[] = [
     icon: "📊",
     color: "#667eea",
   },
+  {
+    title: "AniList - Recherche Anime/Manga",
+    description: "Recherchez des animes et mangas avec auto-complétion. Affiche les informations de base.",
+    path: "/anilist/media-search",
+    icon: "🔍",
+    color: "#ff5757",
+  },
   // Ajoutez d'autres outils ici au fur et à mesure
 ];
 
