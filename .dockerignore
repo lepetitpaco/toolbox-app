@@ -2,5 +2,9 @@ node_modules
 .next
 .git
 .gitignore
-Dockerfile
-docker-compose.yml
+README.md
+.env*.local
+.DS_Store
+*.log
+.vscode
+.idea
