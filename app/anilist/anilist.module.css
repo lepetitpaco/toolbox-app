@@ -117,6 +117,103 @@
   cursor: not-allowed;
 }
 
+.savedUsersSection {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.savedUsersHeader {
+  margin-bottom: 1rem;
+}
+
+.savedUsersTitle {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.savedUsersList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.savedUserItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 0.5rem;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  transition: all 0.3s ease;
+}
+
+.savedUserItem:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.savedUserButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.savedUserButton:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.savedUserAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.savedUserName {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.9rem;
+}
+
+.removeUserButton {
+  background: rgba(255, 87, 87, 0.1);
+  border: none;
+  color: #ff5757;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.removeUserButton:hover {
+  background: rgba(255, 87, 87, 0.2);
+  transform: scale(1.1);
+}
+
+.removeUserButton:active {
+  transform: scale(0.95);
+}
+
 .userInfo {
   display: flex;
   align-items: center;
@@ -828,4 +925,43 @@
 :global(.dark-mode) .loadMoreButton:hover:not(:disabled) {
   background: linear-gradient(135deg, #8b9aff 0%, #a78bfa 100%);
   color: white;
+}
+
+:global(.dark-mode) .savedUsersSection {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .savedUsersTitle {
+  color: #bbb;
+}
+
+:global(.dark-mode) .savedUserItem {
+  background: rgba(40, 40, 40, 0.8);
+  border-color: rgba(139, 154, 255, 0.2);
+}
+
+:global(.dark-mode) .savedUserItem:hover {
+  background: rgba(50, 50, 50, 0.9);
+  border-color: rgba(139, 154, 255, 0.4);
+}
+
+:global(.dark-mode) .savedUserButton:hover {
+  background: rgba(139, 154, 255, 0.15);
+}
+
+:global(.dark-mode) .savedUserAvatar {
+  border-color: rgba(139, 154, 255, 0.4);
+}
+
+:global(.dark-mode) .savedUserName {
+  color: #ededed;
+}
+
+:global(.dark-mode) .removeUserButton {
+  background: rgba(255, 87, 87, 0.15);
+  color: #ff6b6b;
+}
+
+:global(.dark-mode) .removeUserButton:hover {
+  background: rgba(255, 87, 87, 0.25);
 }

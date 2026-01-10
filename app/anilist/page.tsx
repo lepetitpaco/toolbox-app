@@ -6,6 +6,15 @@ import styles from './anilist.module.css';
 
 const STORAGE_KEY = 'anilist_username';
 const THEME_KEY = 'anilist_theme';
+const SAVED_USERS_KEY = 'anilist_saved_users';
+
+interface SavedUser {
+  username: string;
+  id: number;
+  name: string;
+  avatar?: string;
+  lastSearched: number; // timestamp
+}
 
 export default function AniListPage() {
   const [username, setUsername] = useState<string>('');
@@ -23,8 +32,9 @@ export default function AniListPage() {
   const [expandedComments, setExpandedComments] = useState<{
     [key: number]: { replies: ActivityComment[], loading: boolean }
   }>({});
+  const [savedUsers, setSavedUsers] = useState<SavedUser[]>([]);
 
-  // Load saved username and theme from localStorage
+  // Load saved username, theme, and saved users from localStorage
   useEffect(() => {
     const savedUsername = localStorage.getItem(STORAGE_KEY);
     if (savedUsername) {
@@ -36,11 +46,51 @@ export default function AniListPage() {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark-mode');
     }
+
+    // Load saved users
+    const savedUsersData = localStorage.getItem(SAVED_USERS_KEY);
+    if (savedUsersData) {
+      try {
+        const users = JSON.parse(savedUsersData);
+        setSavedUsers(users);
+      } catch (e) {
+        console.error('Error parsing saved users:', e);
+      }
+    }
   }, []);
 
   // Save username to localStorage
   const saveUsername = useCallback((newUsername: string) => {
     localStorage.setItem(STORAGE_KEY, newUsername);
+  }, []);
+
+  // Save user to saved users list
+  const saveUserToHistory = useCallback((userData: AniListUser, username: string) => {
+    const savedUser: SavedUser = {
+      username: username.toLowerCase(),
+      id: userData.id,
+      name: userData.name,
+      avatar: userData.avatar?.medium || userData.avatar?.large,
+      lastSearched: Date.now()
+    };
+
+    setSavedUsers(prev => {
+      // Remove if already exists
+      const filtered = prev.filter(u => u.id !== userData.id);
+      // Add to beginning and limit to 10 users
+      const updated = [savedUser, ...filtered].slice(0, 10);
+      localStorage.setItem(SAVED_USERS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  // Remove user from saved users list
+  const removeSavedUser = useCallback((userId: number) => {
+    setSavedUsers(prev => {
+      const updated = prev.filter(u => u.id !== userId);
+      localStorage.setItem(SAVED_USERS_KEY, JSON.stringify(updated));
+      return updated;
+    });
   }, []);
 
   // Fetch user data and activities
@@ -74,6 +124,9 @@ export default function AniListPage() {
 
       console.log('User found:', userData.name, 'ID:', userData.id);
       setUser(userData);
+      
+      // Save user to history on successful search
+      saveUserToHistory(userData, targetUsername);
 
       // Step 2: Fetch activities with filters
       const typeToFetch = activityType || filter;
@@ -131,7 +184,14 @@ export default function AniListPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [saveUserToHistory, filter, mediaType, status, error]);
+
+  // Load user from saved users list
+  const loadSavedUser = useCallback((savedUser: SavedUser) => {
+    setUsername(savedUser.username);
+    saveUsername(savedUser.username);
+    loadUserActivities(savedUser.username, 1);
+  }, [loadUserActivities, saveUsername]);
 
   // Handle search
   const handleSearch = useCallback(() => {
@@ -147,14 +207,15 @@ export default function AniListPage() {
     }
   }, [loading, hasNextPage, user, username, page, loadUserActivities]);
 
-  // Auto-load if username is saved
+  // Auto-load if username is saved (only once on mount)
   useEffect(() => {
     const savedUsername = localStorage.getItem(STORAGE_KEY);
-    if (savedUsername && savedUsername.trim()) {
+    if (savedUsername && savedUsername.trim() && !user) {
       setUsername(savedUsername);
       loadUserActivities(savedUsername);
     }
-  }, [loadUserActivities]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Note: We don't reload activities when filters change anymore
   // All filtering is done client-side for better performance
@@ -406,6 +467,45 @@ export default function AniListPage() {
               {loading ? 'Loading...' : 'Search'}
             </button>
           </div>
+          
+          {savedUsers.length > 0 && (
+            <div className={styles.savedUsersSection}>
+              <div className={styles.savedUsersHeader}>
+                <span className={styles.savedUsersTitle}>Recent Users</span>
+              </div>
+              <div className={styles.savedUsersList}>
+                {savedUsers.map((savedUser) => (
+                  <div key={savedUser.id} className={styles.savedUserItem}>
+                    <button
+                      onClick={() => loadSavedUser(savedUser)}
+                      className={styles.savedUserButton}
+                      title={`Load ${savedUser.name}`}
+                    >
+                      {savedUser.avatar && (
+                        <img 
+                          src={savedUser.avatar} 
+                          alt={savedUser.name}
+                          className={styles.savedUserAvatar}
+                        />
+                      )}
+                      <span className={styles.savedUserName}>{savedUser.name}</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeSavedUser(savedUser.id);
+                      }}
+                      className={styles.removeUserButton}
+                      title={`Remove ${savedUser.name}`}
+                      aria-label={`Remove ${savedUser.name}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {user && (
