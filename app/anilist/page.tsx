@@ -14,6 +14,8 @@ export default function AniListPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'list' | 'text' | 'message'>('all');
+  const [mediaType, setMediaType] = useState<'all' | 'anime' | 'manga'>('all');
+  const [status, setStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'likes' | 'replies'>('date');
   const [page, setPage] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
@@ -42,9 +44,15 @@ export default function AniListPage() {
   }, []);
 
   // Fetch user data and activities
-  const loadUserActivities = useCallback(async (targetUsername: string, pageNum: number = 1) => {
+  const loadUserActivities = useCallback(async (
+    targetUsername: string, 
+    pageNum: number = 1, 
+    activityType?: 'all' | 'text' | 'list' | 'message',
+    mediaTypeFilter?: 'all' | 'anime' | 'manga',
+    statusFilter?: string
+  ) => {
     if (!targetUsername.trim()) {
-      setError('Veuillez entrer un nom d\'utilisateur');
+      setError('Please enter a username');
       return;
     }
 
@@ -58,7 +66,7 @@ export default function AniListPage() {
       if (!userData) {
         // Don't set error here if it was already set by the catch block
         if (!error) {
-          setError(`Utilisateur "${targetUsername}" non trouvé. Vérifiez le nom d'utilisateur.`);
+          setError(`User "${targetUsername}" not found. Please check the username.`);
         }
         setLoading(false);
         return;
@@ -67,16 +75,33 @@ export default function AniListPage() {
       console.log('User found:', userData.name, 'ID:', userData.id);
       setUser(userData);
 
-      // Step 2: Fetch all activities
-      console.log('Fetching activities for user:', userData.id);
-      const activitiesData = await fetchUserActivities(userData.id, pageNum, 50);
+      // Step 2: Fetch activities with filters
+      const typeToFetch = activityType || filter;
+      const mediaTypeToFetch = mediaTypeFilter || mediaType;
+      const statusToFetch = statusFilter || status;
+      console.log('Fetching activities for user:', userData.id, 'type:', typeToFetch, 'mediaType:', mediaTypeToFetch, 'status:', statusToFetch);
+      const activitiesData = await fetchUserActivities(userData.id, pageNum, 50, typeToFetch, mediaTypeToFetch, statusToFetch);
       if (!activitiesData) {
-        setError('Erreur lors du chargement des activités. Vérifiez la console pour plus de détails.');
+        setError('Error loading activities. Check the console for more details.');
         setLoading(false);
         return;
       }
 
       console.log('Activities loaded:', activitiesData.activities.length);
+      
+      // Debug: log activity types and statuses to see what we're getting
+      if (activitiesData.activities.length > 0) {
+        const types = activitiesData.activities.map(a => a.type).filter((v, i, a) => a.indexOf(v) === i);
+        console.log('Activity types found:', types);
+        
+        // Log statuses for list activities
+        const listActivities = activitiesData.activities.filter(a => a.type?.toUpperCase().includes('LIST'));
+        if (listActivities.length > 0) {
+          const statuses = listActivities.map(a => a.status).filter((v, i, a) => a.indexOf(v) === i);
+          console.log('Statuses found in list activities:', statuses);
+          console.log('Sample list activity:', listActivities[0]);
+        }
+      }
 
       if (pageNum === 1) {
         setActivities(activitiesData.activities);
@@ -87,7 +112,7 @@ export default function AniListPage() {
       setHasNextPage(activitiesData.pageInfo.hasNextPage);
       setPage(pageNum);
     } catch (err: any) {
-      const errorMessage = err?.message || 'Une erreur est survenue';
+      const errorMessage = err?.message || 'An error occurred';
       
       // Check for rate limiting errors (check for RATE_LIMIT prefix first)
       if (errorMessage.startsWith('RATE_LIMIT:') || 
@@ -96,9 +121,9 @@ export default function AniListPage() {
           errorMessage.includes('rate limit') ||
           errorMessage.toLowerCase().includes('429')) {
         const cleanMessage = errorMessage.replace('RATE_LIMIT: ', '');
-        setError('⏱️ Limite de requêtes atteinte. L\'API AniList limite le nombre de requêtes. Veuillez attendre 30-60 secondes avant de réessayer.');
+        setError('⏱️ Rate limit exceeded. The AniList API limits the number of requests. Please wait 30-60 seconds before trying again.');
       } else if (errorMessage.includes('not found') || errorMessage.includes('non trouvé')) {
-        setError(`Utilisateur "${targetUsername}" non trouvé. Vérifiez le nom d'utilisateur.`);
+        setError(`User "${targetUsername}" not found. Please check the username.`);
       } else {
         setError(errorMessage);
       }
@@ -131,17 +156,108 @@ export default function AniListPage() {
     }
   }, [loadUserActivities]);
 
+  // Note: We don't reload activities when filters change anymore
+  // All filtering is done client-side for better performance
+  // The activities are loaded once and then filtered locally
+
+  // Normalize API status values to dropdown enum values
+  // API returns: "watched episode", "read chapter", "plans to watch", "plans to read", "completed", "dropped", etc.
+  // Dropdown uses: "CURRENT", "PLANNING", "COMPLETED", "DROPPED", "PAUSED", "REPEATING"
+  const normalizeStatus = (status: string, mediaType?: string): string => {
+    if (!status) return status;
+    
+    const statusLower = status.toLowerCase().trim();
+    
+    // Map API status values to enum values
+    if (statusLower === 'watched episode' || statusLower === 'read chapter') {
+      return 'CURRENT';
+    }
+    if (statusLower === 'plans to watch' || statusLower === 'plans to read') {
+      return 'PLANNING';
+    }
+    if (statusLower === 'completed') {
+      return 'COMPLETED';
+    }
+    if (statusLower === 'dropped') {
+      return 'DROPPED';
+    }
+    if (statusLower === 'paused') {
+      return 'PAUSED';
+    }
+    if (statusLower === 'repeating') {
+      return 'REPEATING';
+    }
+    
+    // If already in enum format, return as-is
+    const statusUpper = status.toUpperCase();
+    if (['CURRENT', 'PLANNING', 'COMPLETED', 'DROPPED', 'PAUSED', 'REPEATING'].includes(statusUpper)) {
+      return statusUpper;
+    }
+    
+    // Default: return uppercase version
+    return statusUpper;
+  };
+
   // Filter and sort activities
+  // Note: All filtering is done client-side as the GraphQL API
+  // doesn't support ActivityType enum filtering directly
   const filteredAndSortedActivities = activities
     .filter(activity => {
-      if (filter === 'all') return true;
-      // Map filter values to activity types
-      const typeMap: Record<string, string> = {
-        'list': 'LIST',
-        'text': 'TEXT',
-        'message': 'MESSAGE'
-      };
-      return activity.type === typeMap[filter] || activity.type === filter.toUpperCase();
+      // Filter by activity type if specified
+      if (filter !== 'all') {
+        // Check the activity type - it might be "ANIME_LIST", "MANGA_LIST", "TEXT", or "MESSAGE"
+        const activityTypeUpper = activity.type?.toUpperCase() || '';
+        
+        if (filter === 'list') {
+          // For list activities, the type is usually "ANIME_LIST" or "MANGA_LIST"
+          if (!activityTypeUpper.includes('LIST')) {
+            return false;
+          }
+        } else if (filter === 'text') {
+          if (activityTypeUpper !== 'TEXT') {
+            return false;
+          }
+        } else if (filter === 'message') {
+          if (activityTypeUpper !== 'MESSAGE') {
+            return false;
+          }
+        }
+      }
+      
+      // Filter by mediaType and status if specified (only for ListActivity)
+      // Only apply these filters if the main filter is 'list' or 'all'
+      const isListActivity = activity.type?.toUpperCase().includes('LIST') || false;
+      
+      // Only apply mediaType and status filters if:
+      // 1. The activity is a ListActivity, AND
+      // 2. The main filter is 'list' or 'all' (not 'text' or 'message')
+      if (isListActivity && (filter === 'list' || filter === 'all')) {
+        // Filter by mediaType if specified
+        if (mediaType !== 'all' && activity.media?.type) {
+          const activityMediaType = activity.media.type.toLowerCase();
+          if (mediaType === 'anime' && activityMediaType !== 'anime') return false;
+          if (mediaType === 'manga' && activityMediaType !== 'manga') return false;
+        }
+        
+        // Filter by status if specified
+        if (status !== 'all') {
+          if (!activity.status) {
+            // If activity has no status, exclude it when filtering by status
+            return false;
+          }
+          
+          // Normalize API status to enum value for comparison
+          const normalizedActivityStatus = normalizeStatus(activity.status, activity.media?.type);
+          const filterStatus = String(status).toUpperCase().trim();
+          
+          // Compare normalized values
+          if (normalizedActivityStatus !== filterStatus) {
+            return false;
+          }
+        }
+      }
+      
+      return true;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -157,7 +273,7 @@ export default function AniListPage() {
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
-    return new Intl.DateTimeFormat('fr-FR', {
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -166,16 +282,42 @@ export default function AniListPage() {
     }).format(date);
   };
 
-  const getActivityTypeLabel = (type: string) => {
+  const getActivityTypeLabel = (type: string, mediaType?: string) => {
     switch (type) {
       case 'TEXT':
-        return 'Texte';
+        return 'Text';
       case 'LIST':
-        return 'Liste';
+      case 'ANIME_LIST':
+        return 'Anime';
+      case 'MANGA_LIST':
+        return 'Manga';
       case 'MESSAGE':
         return 'Message';
       default:
         return type;
+    }
+  };
+
+  const getStatusLabel = (status: string, mediaType?: string) => {
+    const normalizedStatus = normalizeStatus(status, mediaType);
+    const isAnime = mediaType?.toLowerCase() === 'anime';
+    const isManga = mediaType?.toLowerCase() === 'manga';
+    
+    switch (normalizedStatus) {
+      case 'CURRENT':
+        return isAnime ? 'Watching' : isManga ? 'Reading' : 'Current';
+      case 'PLANNING':
+        return 'Planning';
+      case 'COMPLETED':
+        return 'Completed';
+      case 'DROPPED':
+        return 'Dropped';
+      case 'PAUSED':
+        return 'Paused';
+      case 'REPEATING':
+        return 'Repeating';
+      default:
+        return status;
     }
   };
 
@@ -236,7 +378,7 @@ export default function AniListPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>AniList - Activités</h1>
+          <h1 className={styles.title}>AniList - Activities</h1>
           <button 
             onClick={toggleDarkMode}
             className={styles.themeToggle}
@@ -253,7 +395,7 @@ export default function AniListPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Nom d'utilisateur AniList"
+              placeholder="AniList username"
               className={styles.searchInput}
             />
             <button 
@@ -261,7 +403,7 @@ export default function AniListPage() {
               disabled={loading}
               className={styles.searchButton}
             >
-              {loading ? 'Chargement...' : 'Rechercher'}
+              {loading ? 'Loading...' : 'Search'}
             </button>
           </div>
         </div>
@@ -285,18 +427,97 @@ export default function AniListPage() {
               <label>Type:</label>
               <select 
                 value={filter} 
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => {
+                  const newFilter = e.target.value as 'all' | 'list' | 'text' | 'message';
+                  setFilter(newFilter);
+                  // Reset mediaType and status when filter changes away from 'list'
+                  if (newFilter !== 'list') {
+                    setMediaType('all');
+                    setStatus('all');
+                    console.log(`[Filter] Changed filter to "${newFilter}", resetting mediaType and status to "all"`);
+                  }
+                  // Activities will be reloaded by the useEffect above
+                }}
                 className={styles.filterSelect}
               >
-                <option value="all">Tous</option>
-                <option value="list">Liste</option>
-                <option value="text">Texte</option>
+                <option value="all">All</option>
+                <option value="list">List</option>
+                <option value="text">Text</option>
                 <option value="message">Message</option>
               </select>
             </div>
 
             <div className={styles.filterGroup}>
-              <label>Trier par:</label>
+              <label>Media:</label>
+              <select 
+                value={mediaType} 
+                onChange={(e) => {
+                  const newMediaType = e.target.value as 'all' | 'anime' | 'manga';
+                  setMediaType(newMediaType);
+                  // Activities will be reloaded by the useEffect above
+                }}
+                className={styles.filterSelect}
+                disabled={filter !== 'list'}
+                style={{ 
+                  cursor: filter !== 'list' ? 'not-allowed' : 'pointer',
+                  pointerEvents: filter !== 'list' ? 'none' : 'auto'
+                }}
+              >
+                <option value="all">All</option>
+                <option value="anime">Anime</option>
+                <option value="manga">Manga</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Status:</label>
+              <select 
+                value={status} 
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  // Activities will be reloaded by the useEffect above
+                }}
+                className={styles.filterSelect}
+                disabled={filter !== 'list'}
+                style={{ 
+                  cursor: filter !== 'list' ? 'not-allowed' : 'pointer',
+                  pointerEvents: filter !== 'list' ? 'none' : 'auto'
+                }}
+              >
+                <option value="all">All</option>
+                {mediaType === 'all' ? (
+                  <>
+                    <option value="CURRENT">In Progress</option>
+                    <option value="PLANNING">Planning</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="DROPPED">Dropped</option>
+                    <option value="PAUSED">Paused</option>
+                    <option value="REPEATING">Repeating</option>
+                  </>
+                ) : mediaType === 'anime' ? (
+                  <>
+                    <option value="CURRENT">Watching</option>
+                    <option value="PLANNING">Planning</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="DROPPED">Dropped</option>
+                    <option value="PAUSED">Paused</option>
+                    <option value="REPEATING">Repeating</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="CURRENT">Reading</option>
+                    <option value="PLANNING">Planning</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="DROPPED">Dropped</option>
+                    <option value="PAUSED">Paused</option>
+                    <option value="REPEATING">Repeating</option>
+                  </>
+                )}
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Sort by:</label>
               <select 
                 value={sortBy} 
                 onChange={(e) => setSortBy(e.target.value as any)}
@@ -304,12 +525,12 @@ export default function AniListPage() {
               >
                 <option value="date">Date</option>
                 <option value="likes">Likes</option>
-                <option value="replies">Commentaires</option>
+                <option value="replies">Comments</option>
               </select>
             </div>
 
             <div className={styles.stats}>
-              {filteredAndSortedActivities.length} activité(s)
+              {filteredAndSortedActivities.length} activity(ies)
             </div>
           </div>
         )}
@@ -317,20 +538,20 @@ export default function AniListPage() {
 
       {error && (
         <div className={styles.error}>
-          <strong>Erreur :</strong> {error}
+          <strong>Error:</strong> {error}
           <br />
-          <small>Vérifiez la console du navigateur (F12) pour plus de détails.</small>
+          <small>Check the browser console (F12) for more details.</small>
         </div>
       )}
 
       <main className={styles.main}>
         {loading && activities.length === 0 && (
-          <div className={styles.loading}>Chargement...</div>
+          <div className={styles.loading}>Loading...</div>
         )}
 
         {!loading && activities.length === 0 && !error && user && (
           <div className={styles.empty}>
-            Aucune activité trouvée pour cet utilisateur.
+            No activities found for this user.
           </div>
         )}
 
@@ -351,8 +572,11 @@ export default function AniListPage() {
                       {activity.user?.name || (activity.userId ? `User ${activity.userId}` : 'AniList')}
                     </div>
                     <div className={styles.activityMeta}>
-                      <span className={styles.activityType}>
-                        {getActivityTypeLabel(activity.type)}
+                      <span 
+                        className={styles.activityType}
+                        data-media-type={activity.type === 'ANIME_LIST' ? 'anime' : activity.type === 'MANGA_LIST' ? 'manga' : ''}
+                      >
+                        {getActivityTypeLabel(activity.type, activity.media?.type)}
                       </span>
                       <span className={styles.activityDate}>
                         {formatDate(activity.createdAt)}
@@ -387,16 +611,16 @@ export default function AniListPage() {
                   )}
                   <div className={styles.mediaDetails}>
                     <div className={styles.mediaTitle}>
-                      {activity.media.title?.romaji || activity.media.title?.english || 'Sans titre'}
+                      {activity.media.title?.romaji || activity.media.title?.english || 'Untitled'}
                     </div>
                     {activity.status && (
                       <div className={styles.activityStatus}>
-                        Statut: {activity.status}
+                        Status: {getStatusLabel(activity.status, activity.media?.type)}
                       </div>
                     )}
                     {activity.progress && (
                       <div className={styles.activityProgress}>
-                        Progression: {activity.progress}
+                        Progress: {activity.progress}
                       </div>
                     )}
                   </div>
@@ -410,15 +634,15 @@ export default function AniListPage() {
                     className={styles.commentsHeader}
                     onClick={() => loadComments(activity.id)}
                   >
-                    💬 {activity.replyCount} commentaire(s)
-                    {expandedComments[activity.id]?.loading && ' - Chargement...'}
+                    💬 {activity.replyCount} comment(s)
+                    {expandedComments[activity.id]?.loading && ' - Loading...'}
                     {expandedComments[activity.id]?.replies && expandedComments[activity.id].replies.length > 0 && ' ▼'}
                     {!expandedComments[activity.id] && ' ▶'}
                   </div>
                   
                   {expandedComments[activity.id]?.loading && (
                     <div className={styles.commentsLoading}>
-                      Chargement des commentaires...
+                      Loading comments...
                     </div>
                   )}
                   
@@ -436,7 +660,7 @@ export default function AniListPage() {
                             )}
                             <div className={styles.commentUserInfo}>
                               <span className={styles.commentUserName}>
-                                {reply.user?.name || 'Utilisateur'}
+                                {reply.user?.name || 'User'}
                               </span>
                               <span className={styles.commentDate}>
                                 {formatDate(reply.createdAt)}
@@ -460,7 +684,7 @@ export default function AniListPage() {
                   
                   {expandedComments[activity.id] && !expandedComments[activity.id].loading && expandedComments[activity.id].replies.length === 0 && (
                     <div className={styles.commentsEmpty}>
-                      Aucun commentaire disponible ou erreur lors du chargement. Vérifiez la console (F12) pour plus de détails.
+                      No comments available or error loading. Check the console (F12) for more details.
                     </div>
                   )}
                 </div>
@@ -476,7 +700,7 @@ export default function AniListPage() {
               disabled={loading}
               className={styles.loadMoreButton}
             >
-              {loading ? 'Chargement...' : 'Charger plus'}
+              {loading ? 'Loading...' : 'Load more'}
             </button>
           </div>
         )}

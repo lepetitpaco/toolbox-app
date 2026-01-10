@@ -60,13 +60,13 @@ export interface ActivityPage {
 
 // GraphQL query to fetch user activities with comments
 const GET_USER_ACTIVITIES = `
-  query GetUserActivities($userId: Int!, $page: Int, $perPage: Int) {
+  query GetUserActivities($userId: Int!, $page: Int, $perPage: Int, $type: ActivityType) {
     Page(page: $page, perPage: $perPage) {
       pageInfo {
         currentPage
         hasNextPage
       }
-      activities(userId: $userId, sort: ID_DESC) {
+      activities(userId: $userId, sort: ID_DESC, type: $type) {
         ... on TextActivity {
           id
           userId
@@ -306,23 +306,56 @@ export async function fetchUserId(username: string): Promise<AniListUser | null>
 export async function fetchUserActivities(
   userId: number,
   page: number = 1,
-  perPage: number = 50
+  perPage: number = 50,
+  type?: 'all' | 'text' | 'list' | 'message',
+  mediaType?: 'all' | 'anime' | 'manga',
+  status?: string
 ): Promise<ActivityPage | null> {
   try {
+    // Build query string
+    // Note: status is filtered client-side, but mediaType can be used to filter by ANIME_LIST/MANGA_LIST
+    let queryString = `userId=${userId}&page=${page}&perPage=${perPage}`;
+    if (type && type !== 'all') {
+      queryString += `&type=${type}`;
+    }
+    // Pass mediaType to filter by ANIME_LIST or MANGA_LIST on server-side
+    if (mediaType && mediaType !== 'all') {
+      queryString += `&mediaType=${mediaType}`;
+    }
+    // status is NOT passed - must be filtered client-side
+    
+    console.log(`[fetchUserActivities] Fetching activities with query: ${queryString}`);
+    
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(
-      `/api/anilist/activities?userId=${userId}&page=${page}&perPage=${perPage}`
+      `/api/anilist/activities?${queryString}`
     );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      let errorData: any = {};
+      try {
+        const errorText = await response.text();
+        console.error(`[fetchUserActivities] HTTP Error ${response.status}, raw response:`, errorText);
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { raw: errorText };
+        }
+      } catch (e) {
+        console.error(`[fetchUserActivities] Error reading error response:`, e);
+      }
+      
       if (response.status === 429) {
         const errorMessage = errorData.error || 'Trop de requêtes. Veuillez attendre quelques secondes avant de réessayer.';
         throw new Error(errorMessage);
       }
-      console.error('HTTP Error:', response.status, errorData);
+      console.error('[fetchUserActivities] HTTP Error:', response.status, errorData);
       if (errorData.error) {
         throw new Error(errorData.error);
+      }
+      if (errorData.details) {
+        console.error('[fetchUserActivities] Error details:', errorData.details);
+        throw new Error(`Erreur API: ${JSON.stringify(errorData.details)}`);
       }
       return null;
     }
