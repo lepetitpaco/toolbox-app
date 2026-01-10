@@ -15,7 +15,8 @@ export interface ActivityComment {
   id: number;
   userId: number;
   user?: AniListUser;
-  comment?: string;
+  text?: string;
+  comment?: string; // Keep for backward compatibility
   createdAt: number;
   isLiked?: boolean;
   likeCount?: number;
@@ -147,7 +148,7 @@ const GET_ACTIVITY_REPLIES = `
         replies {
           id
           userId
-          comment
+          text
           createdAt
           isLiked
           likeCount
@@ -165,7 +166,7 @@ const GET_ACTIVITY_REPLIES = `
         replies {
           id
           userId
-          comment
+          text
           createdAt
           isLiked
           likeCount
@@ -182,46 +183,84 @@ const GET_ACTIVITY_REPLIES = `
       ... on MessageActivity {
         replies {
           id
-          comment
+          text
           createdAt
           isLiked
           likeCount
+          user {
+            id
+            name
+            avatar {
+              large
+              medium
+            }
+          }
         }
       }
     }
   }
 `;
 
-async function fetchActivityReplies(activityId: number): Promise<ActivityComment[] | null> {
+export async function fetchActivityReplies(activityId: number): Promise<ActivityComment[] | null> {
   try {
+    console.log(`[fetchActivityReplies] Starting fetch for activity ${activityId}`);
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(`/api/anilist/replies?activityId=${activityId}`);
 
+    console.log(`[fetchActivityReplies] Response status: ${response.status} for activity ${activityId}`);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      let errorData: any = {};
+      try {
+        const errorText = await response.text();
+        console.error(`[fetchActivityReplies] HTTP Error ${response.status} for activity ${activityId}, raw response:`, errorText);
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { raw: errorText };
+        }
+      } catch (e) {
+        console.error(`[fetchActivityReplies] Error reading error response:`, e);
+      }
+      
+      console.error(`[fetchActivityReplies] HTTP Error ${response.status} for activity ${activityId}:`, errorData);
+      
       if (response.status === 429) {
         console.warn(`Rate limit exceeded while fetching replies for activity ${activityId}`);
-        return null;
+        throw new Error('RATE_LIMIT: Too many requests');
       }
-      // For 400 errors, some activities may not have accessible replies - just return null silently
+      // For 400 errors, log the full error details and return empty array
       if (response.status === 400) {
-        console.warn(`Activity ${activityId} may not have accessible replies (this is normal for some activities)`);
-        return null;
+        console.warn(`Activity ${activityId} returned 400 error. Details:`, errorData);
+        // Return empty array instead of null to show "no comments" message
+        return [];
       }
-      console.error(`HTTP Error fetching replies for activity ${activityId}:`, response.status, errorData);
-      return null;
+      return [];
     }
 
-    const replies = await response.json();
+    const repliesData = await response.json();
+    console.log(`[fetchActivityReplies] Response data for activity ${activityId}:`, repliesData);
     
-    if (Array.isArray(replies) && replies.length > 0) {
-      return replies;
+    // Check if it's an error response
+    if (repliesData.error) {
+      console.error(`[fetchActivityReplies] Error from API route for activity ${activityId}:`, repliesData.error, repliesData.details);
+      return [];
+    }
+    
+    // Check if it's an array of replies
+    if (Array.isArray(repliesData)) {
+      console.log(`[fetchActivityReplies] Received ${repliesData.length} replies for activity ${activityId}`);
+      return repliesData.length > 0 ? repliesData : [];
     }
 
-    return null;
+    console.warn(`[fetchActivityReplies] Unexpected response format for activity ${activityId}:`, repliesData);
+    return [];
   } catch (error) {
-    console.error(`Error fetching activity replies for ${activityId}:`, error);
-    return null;
+    console.error(`[fetchActivityReplies] Exception fetching activity replies for ${activityId}:`, error);
+    if (error instanceof Error && error.message.includes('RATE_LIMIT')) {
+      throw error;
+    }
+    return [];
   }
 }
 

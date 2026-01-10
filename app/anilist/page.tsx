@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchUserId, fetchUserActivities, ActivityStatus, AniListUser } from '@/lib/anilist';
+import { fetchUserId, fetchUserActivities, fetchActivityReplies, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
 import styles from './anilist.module.css';
 
 const STORAGE_KEY = 'anilist_username';
@@ -18,6 +18,9 @@ export default function AniListPage() {
   const [page, setPage] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [expandedComments, setExpandedComments] = useState<{
+    [key: number]: { replies: ActivityComment[], loading: boolean }
+  }>({});
 
   // Load saved username and theme from localStorage
   useEffect(() => {
@@ -186,6 +189,48 @@ export default function AniListPage() {
       document.documentElement.classList.remove('dark-mode');
     }
   };
+
+  const loadComments = useCallback(async (activityId: number) => {
+    // Si déjà chargé, toggle (fermer)
+    if (expandedComments[activityId]?.replies && expandedComments[activityId].replies.length > 0) {
+      setExpandedComments(prev => {
+        const newState = { ...prev };
+        delete newState[activityId];
+        return newState;
+      });
+      return;
+    }
+    
+    // Si déjà en chargement, ne rien faire
+    if (expandedComments[activityId]?.loading) {
+      return;
+    }
+    
+    // Charger via API
+    setExpandedComments(prev => ({ ...prev, [activityId]: { replies: [], loading: true } }));
+    
+    try {
+      console.log(`Loading comments for activity ${activityId} via API...`);
+      const replies = await fetchActivityReplies(activityId);
+      console.log(`Received replies for activity ${activityId}:`, replies, `(type: ${typeof replies}, isArray: ${Array.isArray(replies)}, length: ${Array.isArray(replies) ? replies.length : 'N/A'})`);
+      setExpandedComments(prev => ({ 
+        ...prev, 
+        [activityId]: { 
+          replies: Array.isArray(replies) ? replies : [], 
+          loading: false 
+        } 
+      }));
+    } catch (error) {
+      console.error(`Error loading comments for activity ${activityId}:`, error);
+      setExpandedComments(prev => ({ 
+        ...prev, 
+        [activityId]: { 
+          replies: [], 
+          loading: false 
+        } 
+      }));
+    }
+  }, [expandedComments, activities]);
 
   return (
     <div className={styles.container}>
@@ -358,12 +403,66 @@ export default function AniListPage() {
                 </div>
               )}
 
-              {/* Comments section - will be added later */}
+              {/* Comments section */}
               {activity.replyCount !== undefined && activity.replyCount > 0 && (
                 <div className={styles.commentsSection}>
-                  <div className={styles.commentsHeader}>
-                    💬 {activity.replyCount} commentaire(s) - (affichage à venir)
+                  <div 
+                    className={styles.commentsHeader}
+                    onClick={() => loadComments(activity.id)}
+                  >
+                    💬 {activity.replyCount} commentaire(s)
+                    {expandedComments[activity.id]?.loading && ' - Chargement...'}
+                    {expandedComments[activity.id]?.replies && expandedComments[activity.id].replies.length > 0 && ' ▼'}
+                    {!expandedComments[activity.id] && ' ▶'}
                   </div>
+                  
+                  {expandedComments[activity.id]?.loading && (
+                    <div className={styles.commentsLoading}>
+                      Chargement des commentaires...
+                    </div>
+                  )}
+                  
+                  {expandedComments[activity.id]?.replies && expandedComments[activity.id].replies.length > 0 && (
+                    <div className={styles.commentsList}>
+                      {expandedComments[activity.id].replies.map((reply) => (
+                        <div key={reply.id} className={styles.comment}>
+                          <div className={styles.commentHeader}>
+                            {reply.user?.avatar?.medium && (
+                              <img 
+                                src={reply.user.avatar.medium} 
+                                alt={reply.user.name}
+                                className={styles.commentAvatar}
+                              />
+                            )}
+                            <div className={styles.commentUserInfo}>
+                              <span className={styles.commentUserName}>
+                                {reply.user?.name || 'Utilisateur'}
+                              </span>
+                              <span className={styles.commentDate}>
+                                {formatDate(reply.createdAt)}
+                              </span>
+                            </div>
+                            {reply.likeCount !== undefined && reply.likeCount > 0 && (
+                              <span className={styles.commentLikes}>
+                                ❤️ {reply.likeCount}
+                              </span>
+                            )}
+                          </div>
+                          {(reply.text || reply.comment) && (
+                            <div className={styles.commentText}>
+                              {reply.text || reply.comment}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {expandedComments[activity.id] && !expandedComments[activity.id].loading && expandedComments[activity.id].replies.length === 0 && (
+                    <div className={styles.commentsEmpty}>
+                      Aucun commentaire disponible ou erreur lors du chargement. Vérifiez la console (F12) pour plus de détails.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
