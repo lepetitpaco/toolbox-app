@@ -651,9 +651,12 @@ export default function ActivitiesPage() {
               </div>
 
               {(activity.text || activity.message) && (
-                <div className={styles.activityText}>
-                  {activity.text || activity.message}
-                </div>
+                <div 
+                  className={styles.activityText}
+                  dangerouslySetInnerHTML={{ 
+                    __html: activity.text || activity.message || '' 
+                  }}
+                />
               )}
 
               {activity.media && (
@@ -737,9 +740,12 @@ export default function ActivitiesPage() {
                             )}
                           </div>
                           {(reply.text || reply.comment) && (
-                            <div className={styles.commentText}>
-                              {reply.text || reply.comment}
-                            </div>
+                            <div 
+                              className={styles.commentText}
+                              dangerouslySetInnerHTML={{ 
+                                __html: reply.text || reply.comment || '' 
+                              }}
+                            />
                           )}
                         </div>
                       ))}

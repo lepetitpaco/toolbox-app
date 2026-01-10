@@ -121,7 +121,7 @@ const GET_USER_ACTIVITIES = `
           replyCount
           likeCount
           createdAt
-          text
+          text(asHtml: true)
           user {
             id
             name
@@ -195,7 +195,7 @@ const GET_ACTIVITY_REPLIES = `
         replies {
           id
           userId
-          text
+          text(asHtml: true)
           createdAt
           isLiked
           likeCount
@@ -213,7 +213,7 @@ const GET_ACTIVITY_REPLIES = `
         replies {
           id
           userId
-          text
+          text(asHtml: true)
           createdAt
           isLiked
           likeCount
@@ -230,7 +230,7 @@ const GET_ACTIVITY_REPLIES = `
       ... on MessageActivity {
         replies {
           id
-          text
+          text(asHtml: true)
           createdAt
           isLiked
           likeCount

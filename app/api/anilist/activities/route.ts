@@ -17,7 +17,7 @@ const GET_USER_ACTIVITIES = `
           replyCount
           likeCount
           createdAt
-          text
+          text(asHtml: true)
           user {
             id
             name

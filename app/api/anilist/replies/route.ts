@@ -10,7 +10,7 @@ const GET_ACTIVITY_REPLIES = `
         replies {
           id
           userId
-          text
+          text(asHtml: true)
           createdAt
           isLiked
           likeCount
@@ -29,7 +29,7 @@ const GET_ACTIVITY_REPLIES = `
         replies {
           id
           userId
-          text
+          text(asHtml: true)
           createdAt
           isLiked
           likeCount
@@ -47,7 +47,7 @@ const GET_ACTIVITY_REPLIES = `
         id
         replies {
           id
-          text
+          text(asHtml: true)
           createdAt
           isLiked
           likeCount

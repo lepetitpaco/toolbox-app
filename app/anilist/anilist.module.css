@@ -532,10 +532,80 @@
   margin-bottom: 1.25rem;
   color: #1a1a1a;
   line-height: 1.8;
-  white-space: pre-wrap;
   word-wrap: break-word;
   border-left: 4px solid #667eea;
   font-size: 1rem;
+}
+
+.activityText :global(p) {
+  margin: 0.5rem 0;
+}
+
+.activityText :global(p:first-child) {
+  margin-top: 0;
+}
+
+.activityText :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.activityText :global(strong),
+.activityText :global(b) {
+  font-weight: 700;
+  color: #000000;
+}
+
+.activityText :global(em),
+.activityText :global(i) {
+  font-style: italic;
+}
+
+.activityText :global(a) {
+  color: #667eea;
+  text-decoration: underline;
+}
+
+.activityText :global(a:hover) {
+  color: #5568d3;
+}
+
+.activityText :global(code) {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.activityText :global(pre) {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.activityText :global(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.activityText :global(ul),
+.activityText :global(ol) {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.activityText :global(li) {
+  margin: 0.25rem 0;
+}
+
+.activityText :global(blockquote) {
+  border-left: 4px solid #667eea;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #4a4a4a;
+  font-style: italic;
 }
 
 .activityStats {
@@ -744,9 +814,79 @@
 .commentText {
   color: #000000;
   line-height: 1.7;
-  white-space: pre-wrap;
   word-wrap: break-word;
   font-size: 0.95rem;
+}
+
+.commentText :global(p) {
+  margin: 0.5rem 0;
+}
+
+.commentText :global(p:first-child) {
+  margin-top: 0;
+}
+
+.commentText :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.commentText :global(strong),
+.commentText :global(b) {
+  font-weight: 700;
+  color: #000000;
+}
+
+.commentText :global(em),
+.commentText :global(i) {
+  font-style: italic;
+}
+
+.commentText :global(a) {
+  color: #667eea;
+  text-decoration: underline;
+}
+
+.commentText :global(a:hover) {
+  color: #5568d3;
+}
+
+.commentText :global(code) {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.commentText :global(pre) {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.commentText :global(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.commentText :global(ul),
+.commentText :global(ol) {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.commentText :global(li) {
+  margin: 0.25rem 0;
+}
+
+.commentText :global(blockquote) {
+  border-left: 4px solid #667eea;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #4a4a4a;
+  font-style: italic;
 }
 
 .loadMoreSection {
@@ -912,8 +1052,34 @@
 
 :global(.dark-mode) .activityText {
   background: rgba(102, 126, 234, 0.15);
-  color: #ccc;
+  color: #e0e0e0;
   border-left-color: #8b9aff;
+}
+
+:global(.dark-mode) .activityText :global(strong),
+:global(.dark-mode) .activityText :global(b) {
+  color: #ffffff;
+}
+
+:global(.dark-mode) .activityText :global(a) {
+  color: #8b9aff;
+}
+
+:global(.dark-mode) .activityText :global(a:hover) {
+  color: #a78bfa;
+}
+
+:global(.dark-mode) .activityText :global(code) {
+  background: rgba(139, 154, 255, 0.2);
+}
+
+:global(.dark-mode) .activityText :global(pre) {
+  background: rgba(139, 154, 255, 0.2);
+}
+
+:global(.dark-mode) .activityText :global(blockquote) {
+  border-left-color: #8b9aff;
+  color: #d0d0d0;
 }
 
 :global(.dark-mode) .activityDate,
@@ -1001,6 +1167,32 @@
 
 :global(.dark-mode) .commentText {
   color: #ffffff;
+}
+
+:global(.dark-mode) .commentText :global(strong),
+:global(.dark-mode) .commentText :global(b) {
+  color: #ffffff;
+}
+
+:global(.dark-mode) .commentText :global(a) {
+  color: #8b9aff;
+}
+
+:global(.dark-mode) .commentText :global(a:hover) {
+  color: #a78bfa;
+}
+
+:global(.dark-mode) .commentText :global(code) {
+  background: rgba(139, 154, 255, 0.2);
+}
+
+:global(.dark-mode) .commentText :global(pre) {
+  background: rgba(139, 154, 255, 0.2);
+}
+
+:global(.dark-mode) .commentText :global(blockquote) {
+  border-left-color: #8b9aff;
+  color: #d0d0d0;
 }
 
 :global(.dark-mode) .comment {
