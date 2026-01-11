@@ -24,6 +24,12 @@ services:
       - WATCHPACK_POLLING=true
       - WATCHPACK_AGGREGATE_TIMEOUT=300
       - NEXT_TELEMETRY_DISABLED=1
+      # AniList OAuth - Add your credentials here or use .env file
+      # - ANILIST_CLIENT_ID=${ANILIST_CLIENT_ID}
+      # - ANILIST_CLIENT_SECRET=${ANILIST_CLIENT_SECRET}
+      # - ANILIST_REDIRECT_URI=${ANILIST_REDIRECT_URI:-http://localhost:3000/api/anilist/auth/callback}
+    env_file:
+      - .env
 
     command: npm run dev:webpack -- -H 0.0.0.0
 

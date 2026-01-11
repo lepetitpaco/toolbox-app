@@ -85,7 +85,6 @@ export async function GET(request: NextRequest) {
       variables.type = mediaType;
     }
 
-    console.log('[search API] Sending GraphQL query with variables:', JSON.stringify(variables, null, 2));
 
     const response = await fetch(ANILIST_API_URL, {
       method: 'POST',
@@ -100,7 +99,6 @@ export async function GET(request: NextRequest) {
     });
 
     const responseText = await response.text();
-    console.log(`[search API] AniList API response status: ${response.status}`);
 
     if (!response.ok) {
       console.error(`[search API] AniList API returned HTTP ${response.status}:`, responseText);

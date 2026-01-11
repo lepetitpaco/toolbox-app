@@ -78,8 +78,6 @@ export async function GET(request: NextRequest) {
   const perPage = searchParams.get('perPage') || '50';
   const activityType = searchParams.get('type'); // 'text', 'list', 'message', 'anime', 'manga', or null for all
   const mediaType = searchParams.get('mediaType'); // 'anime', 'manga', or null
-  
-  console.log(`[activities API] Request params: userId=${userId}, page=${page}, perPage=${perPage}, type=${activityType}, mediaType=${mediaType}`);
 
   if (!userId) {
     return NextResponse.json(
@@ -121,13 +119,10 @@ export async function GET(request: NextRequest) {
       variables.type = graphQLType;
     }
 
-    console.log('[activities API] Sending GraphQL query with variables:', JSON.stringify(variables, null, 2));
-
     const requestBody = {
       query: GET_USER_ACTIVITIES,
       variables,
     };
-    console.log('[activities API] Full request body:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(ANILIST_API_URL, {
       method: 'POST',
@@ -139,8 +134,6 @@ export async function GET(request: NextRequest) {
     });
 
     const responseText = await response.text();
-    console.log(`[activities API] AniList API response status: ${response.status}`);
-    console.log(`[activities API] AniList API response body:`, responseText);
 
     if (!response.ok) {
       console.error(`[activities API] AniList API returned HTTP ${response.status}:`, responseText);
@@ -160,8 +153,6 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('[activities API] AniList API parsed response:', JSON.stringify(data, null, 2));
 
     if (data.errors) {
       console.error('[activities API] AniList API errors for activities:', JSON.stringify(data.errors, null, 2));

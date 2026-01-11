@@ -415,3 +415,143 @@
 :global(.dark-mode) .description p {
   color: #ccc;
 }
+
+.followedScoresSection {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.followedScoresTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.loadingScores {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.noScores {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.scoresList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scoreItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  transition: all 0.3s ease;
+}
+
+.scoreItem:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateX(4px);
+}
+
+.scoreAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.scoreInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.scoreUserName {
+  font-weight: 700;
+  color: #000000;
+  font-size: 1rem;
+}
+
+.scoreDetails {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+.scoreValue {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.scoreStatus {
+  color: #666;
+  font-weight: 500;
+}
+
+.scoreProgress {
+  color: #666;
+  font-weight: 500;
+}
+
+:global(.dark-mode) .followedScoresTitle {
+  color: #ffffff;
+}
+
+:global(.dark-mode) .loadingScores,
+:global(.dark-mode) .noScores {
+  color: #d0d0d0;
+}
+
+:global(.dark-mode) .scoreItem {
+  background: rgba(26, 26, 26, 0.6);
+  border-color: rgba(139, 154, 255, 0.2);
+}
+
+:global(.dark-mode) .scoreItem:hover {
+  background: rgba(40, 40, 40, 0.7);
+}
+
+:global(.dark-mode) .scoreUserName {
+  color: #ffffff;
+}
+
+:global(.dark-mode) .scoreValue {
+  color: #8b9aff;
+}
+
+:global(.dark-mode) .scoreStatus,
+:global(.dark-mode) .scoreProgress {
+  color: #d0d0d0;
+}
+
+.tokenError {
+  padding: 1rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 2px solid rgba(255, 193, 7, 0.8);
+  border-radius: 12px;
+  color: #f59e0b;
+  font-weight: 500;
+  text-align: center;
+}
+
+:global(.dark-mode) .tokenError {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.6);
+  color: #fbbf24;
+}

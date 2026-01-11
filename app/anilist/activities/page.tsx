@@ -106,7 +106,6 @@ export default function ActivitiesPage() {
 
     try {
       // Step 1: Get user ID
-      console.log('Fetching user:', targetUsername);
       const userData = await fetchUserId(targetUsername);
       if (!userData) {
         // Don't set error here if it was already set by the catch block
@@ -117,7 +116,6 @@ export default function ActivitiesPage() {
         return;
       }
 
-      console.log('User found:', userData.name, 'ID:', userData.id);
       setUser(userData);
       
       // Save user to history on successful search
@@ -127,28 +125,11 @@ export default function ActivitiesPage() {
       const typeToFetch = activityType || filter;
       const mediaTypeToFetch = mediaTypeFilter || mediaType;
       const statusToFetch = statusFilter || status;
-      console.log('Fetching activities for user:', userData.id, 'type:', typeToFetch, 'mediaType:', mediaTypeToFetch, 'status:', statusToFetch);
       const activitiesData = await fetchUserActivities(userData.id, pageNum, 50, typeToFetch, mediaTypeToFetch, statusToFetch);
       if (!activitiesData) {
         setError('Error loading activities. Check the console for more details.');
         setLoading(false);
         return;
-      }
-
-      console.log('Activities loaded:', activitiesData.activities.length);
-      
-      // Debug: log activity types and statuses to see what we're getting
-      if (activitiesData.activities.length > 0) {
-        const types = activitiesData.activities.map(a => a.type).filter((v, i, a) => a.indexOf(v) === i);
-        console.log('Activity types found:', types);
-        
-        // Log statuses for list activities
-        const listActivities = activitiesData.activities.filter(a => a.type?.toUpperCase().includes('LIST'));
-        if (listActivities.length > 0) {
-          const statuses = listActivities.map(a => a.status).filter((v, i, a) => a.indexOf(v) === i);
-          console.log('Statuses found in list activities:', statuses);
-          console.log('Sample list activity:', listActivities[0]);
-        }
       }
 
       if (pageNum === 1) {
@@ -388,9 +369,7 @@ export default function ActivitiesPage() {
     setExpandedComments(prev => ({ ...prev, [activityId]: { replies: [], loading: true } }));
     
     try {
-      console.log(`Loading comments for activity ${activityId} via API...`);
       const replies = await fetchActivityReplies(activityId);
-      console.log(`Received replies for activity ${activityId}:`, replies);
       setExpandedComments(prev => ({ 
         ...prev, 
         [activityId]: { 

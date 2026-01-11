@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { searchMedia, fetchMediaById, Media } from '@/lib/anilist';
+import { searchMedia, fetchMediaById, Media, getFollowedUsersScores, UserMediaScore } from '@/lib/anilist';
 import styles from './media-search.module.css';
+
+const AUTH_TOKEN_KEY = 'anilist_access_token';
 
 function MediaSearchContent() {
   const searchParams = useSearchParams();
@@ -14,8 +16,51 @@ function MediaSearchContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [followedScores, setFollowedScores] = useState<UserMediaScore[]>([]);
+  const [loadingScores, setLoadingScores] = useState<boolean>(false);
+  const [hasToken, setHasToken] = useState<boolean>(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Check if user is authenticated and monitor token changes.
+   * 
+   * This effect:
+   * - Checks for authentication token on mount
+   * - Listens for storage changes (token set in another tab/component)
+   * - Periodically re-checks token (in case it was set after mount)
+   * - Updates hasToken state to show/hide the scores section
+   */
+  useEffect(() => {
+    const checkToken = () => {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        setHasToken(!!token);
+      }
+    };
+
+    // Check immediately on mount
+    checkToken();
+
+    // Listen for storage changes (e.g., token set in another tab or after login)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === AUTH_TOKEN_KEY) {
+        checkToken();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Re-check periodically (in case token was set after component mount)
+    // This ensures the scores section appears even if login happens after page load
+    const interval = setInterval(checkToken, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Load media by ID from URL parameter
   useEffect(() => {
@@ -53,6 +98,58 @@ function MediaSearchContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  /**
+   * Load scores from followed users when a media is selected.
+   * 
+   * This effect:
+   * - Checks if user is authenticated (has token)
+   * - Fetches scores from followed users for the selected media
+   * - Handles token expiration (clears auth data and shows error)
+   * - Updates UI with scores or error messages
+   */
+  useEffect(() => {
+    if (selectedMedia?.id) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+      
+      if (token) {
+        setLoadingScores(true);
+        setTokenError(null);
+        
+        getFollowedUsersScores(token, selectedMedia.id)
+          .then((scores) => {
+            // Update scores state with fetched data
+            setFollowedScores(scores || []);
+          })
+          .catch((err: any) => {
+            const errorMessage = err?.message || '';
+            
+            // Handle token expiration/invalidation
+            if (errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('401')) {
+              // Clear expired token and auth data
+              localStorage.removeItem(AUTH_TOKEN_KEY);
+              localStorage.removeItem('anilist_user');
+              setHasToken(false);
+              setTokenError('Your session has expired. Please log in again.');
+            } else {
+              // Other errors (400, network errors, etc.)
+              setTokenError(`Error loading scores: ${errorMessage}`);
+            }
+            
+            setFollowedScores([]);
+          })
+          .finally(() => {
+            setLoadingScores(false);
+          });
+      } else {
+        // No token, clear scores
+        setFollowedScores([]);
+      }
+    } else {
+      // No media selected, clear scores
+      setFollowedScores([]);
+    }
+  }, [selectedMedia?.id]);
 
   // Handle search with debounce for auto-completion
   const performSearch = useCallback(async (searchQuery: string, type: 'ALL' | 'ANIME' | 'MANGA') => {
@@ -119,8 +216,12 @@ function MediaSearchContent() {
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionsRef.current && suggestionsRef.current.parentNode && !suggestionsRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
+      // Check if ref exists and is still in the DOM
+      if (suggestionsRef.current && document.contains(suggestionsRef.current)) {
+        const target = event.target as Node;
+        if (target && !suggestionsRef.current.contains(target)) {
+          setShowSuggestions(false);
+        }
       }
     };
 
@@ -339,6 +440,77 @@ function MediaSearchContent() {
                     >
                       View on AniList →
                     </a>
+                  )}
+
+                  {/* 
+                    Followed Users Scores Section
+                    Displays scores, status, and progress from users that the authenticated user follows.
+                    Similar to AniList's "Social" section on media pages.
+                  */}
+                  {hasToken && (
+                    <div className={styles.followedScoresSection}>
+                      <h3 className={styles.followedScoresTitle}>Followed Users Scores</h3>
+                      
+                      {/* Error message (e.g., expired token) */}
+                      {tokenError ? (
+                        <div className={styles.tokenError}>
+                          {tokenError}
+                          {tokenError.includes('expired') && (
+                            <button 
+                              onClick={() => window.location.href = '/api/anilist/auth/authorize'}
+                              className={styles.loginButton}
+                              style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                            >
+                              Login Again
+                            </button>
+                          )}
+                        </div>
+                      ) : loadingScores ? (
+                        // Loading state
+                        <div className={styles.loadingScores}>Loading scores...</div>
+                      ) : followedScores.length > 0 ? (
+                        // Display scores list
+                        <div className={styles.scoresList}>
+                          {followedScores.map((score) => (
+                            <div key={score.userId} className={styles.scoreItem}>
+                              {/* User avatar */}
+                              {score.userAvatar && (
+                                <img 
+                                  src={score.userAvatar} 
+                                  alt={score.userName}
+                                  className={styles.scoreAvatar}
+                                />
+                              )}
+                              {/* User info and score details */}
+                              <div className={styles.scoreInfo}>
+                                <span className={styles.scoreUserName}>{score.userName}</span>
+                                <div className={styles.scoreDetails}>
+                                  {/* Score out of 100 */}
+                                  {score.score !== null && score.score !== undefined && (
+                                    <span className={styles.scoreValue}>Score: {score.score}/100</span>
+                                  )}
+                                  {/* Status (CURRENT, PLANNING, COMPLETED, etc.) */}
+                                  {score.status && (
+                                    <span className={styles.scoreStatus}>{score.status}</span>
+                                  )}
+                                  {/* Progress (episode/chapter number) */}
+                                  {score.progress !== null && score.progress !== undefined && (
+                                    <span className={styles.scoreProgress}>Progress: {score.progress}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        // No scores found
+                        <div className={styles.noScores}>
+                          {hasToken 
+                            ? 'No followed users have rated this media yet.' 
+                            : 'Please log in to see followed users scores.'}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

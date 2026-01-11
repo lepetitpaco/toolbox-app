@@ -250,11 +250,8 @@ const GET_ACTIVITY_REPLIES = `
 
 export async function fetchActivityReplies(activityId: number): Promise<ActivityComment[] | null> {
   try {
-    console.log(`[fetchActivityReplies] Starting fetch for activity ${activityId}`);
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(`/api/anilist/replies?activityId=${activityId}`);
-
-    console.log(`[fetchActivityReplies] Response status: ${response.status} for activity ${activityId}`);
 
     if (!response.ok) {
       let errorData: any = {};
@@ -286,7 +283,6 @@ export async function fetchActivityReplies(activityId: number): Promise<Activity
     }
 
     const repliesData = await response.json();
-    console.log(`[fetchActivityReplies] Response data for activity ${activityId}:`, repliesData);
     
     // Check if it's an error response
     if (repliesData.error) {
@@ -296,11 +292,10 @@ export async function fetchActivityReplies(activityId: number): Promise<Activity
     
     // Check if it's an array of replies
     if (Array.isArray(repliesData)) {
-      console.log(`[fetchActivityReplies] Received ${repliesData.length} replies for activity ${activityId}`);
       return repliesData.length > 0 ? repliesData : [];
     }
 
-    console.warn(`[fetchActivityReplies] Unexpected response format for activity ${activityId}:`, repliesData);
+    console.warn(`[fetchActivityReplies] Unexpected response format for activity ${activityId}`);
     return [];
   } catch (error) {
     console.error(`[fetchActivityReplies] Exception fetching activity replies for ${activityId}:`, error);
@@ -371,7 +366,6 @@ export async function fetchUserActivities(
     }
     // status is NOT passed - must be filtered client-side
     
-    console.log(`[fetchUserActivities] Fetching activities with query: ${queryString}`);
     
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(
@@ -417,7 +411,6 @@ export async function fetchUserActivities(
     const activities: ActivityStatus[] = data.activities || [];
     const pageInfo = data.pageInfo || { currentPage: page, hasNextPage: false };
 
-    console.log(`Found ${activities.length} activities`);
 
     // For now, just return all activities without fetching replies
     // We'll add replies later
@@ -513,6 +506,106 @@ export async function searchMedia(
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error - check your internet connection');
     }
+    throw error;
+  }
+}
+
+// Get followed users (requires authentication)
+export async function getFollowedUsers(accessToken: string): Promise<AniListUser[] | null> {
+  try {
+    const response = await fetch('/api/anilist/following', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        throw new Error('UNAUTHORIZED: Invalid or expired token');
+      }
+      throw new Error(errorData.error || 'Failed to fetch followed users');
+    }
+
+    const data = await response.json();
+    return data.users || [];
+  } catch (error) {
+    console.error('Error fetching followed users:', error);
+    throw error;
+  }
+}
+
+/**
+ * Interface for a user's media score data.
+ * Represents a followed user's rating/status for a specific media.
+ */
+export interface UserMediaScore {
+  userId: number;
+  userName: string;
+  userAvatar?: string;
+  score?: number; // Score out of 100 (or user's score format)
+  status?: string; // e.g., "CURRENT", "PLANNING", "COMPLETED", "DROPPED", "PAUSED"
+  progress?: number; // Current episode/chapter progress
+}
+
+/**
+ * Get scores from followed users for a specific media.
+ * 
+ * This function fetches the scores, status, and progress of all users
+ * that the authenticated user follows for a given media.
+ * Similar to AniList's "Social" section on media pages.
+ * 
+ * @param accessToken - AniList OAuth access token
+ * @param mediaId - The ID of the media to get scores for
+ * @returns Array of UserMediaScore objects, or null on error
+ * @throws Error if the request fails or token is invalid
+ */
+export async function getFollowedUsersScores(
+  accessToken: string,
+  mediaId: number
+): Promise<UserMediaScore[] | null> {
+  try {
+    const response = await fetch(`/api/anilist/media-scores?mediaId=${mediaId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText || 'Unknown error' };
+      }
+      
+      // Handle unauthorized errors (expired token)
+      if (response.status === 401) {
+        throw new Error('UNAUTHORIZED: Invalid or expired token');
+      }
+      
+      // Extract error message from response
+      let errorMessage = errorData.error || errorText || 'Failed to fetch user scores';
+      if (errorData.details) {
+        if (Array.isArray(errorData.details)) {
+          errorMessage = errorData.details.map((d: any) => d.message || JSON.stringify(d)).join(', ');
+        } else if (typeof errorData.details === 'string') {
+          errorMessage = errorData.details;
+        } else if (errorData.details.error) {
+          errorMessage = errorData.details.error;
+        }
+      }
+      
+      throw new Error(`HTTP ${response.status}: ${errorMessage}`);
+    }
+
+    const data = await response.json();
+    return data.scores || [];
+  } catch (error) {
+    console.error('[getFollowedUsersScores] Error:', error);
     throw error;
   }
 }

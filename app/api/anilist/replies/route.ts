@@ -99,7 +99,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`[replies API] Full response for activity ${activityId}:`, JSON.stringify(data, null, 2));
 
     if (data.errors) {
       // Log the error for debugging
@@ -113,20 +112,14 @@ export async function GET(request: NextRequest) {
 
     const activity = data.data?.Activity;
     if (!activity) {
-      console.warn(`[replies API] Activity ${activityId} not found in response. Full response:`, JSON.stringify(data, null, 2));
+      console.warn(`[replies API] Activity ${activityId} not found in response`);
       return NextResponse.json(
         { error: 'Activity not found' },
         { status: 404 }
       );
     }
 
-    console.log(`[replies API] Activity ${activityId} found, type: ${activity.__typename || 'unknown'}`);
-    console.log(`[replies API] Replies in activity:`, activity.replies);
-    console.log(`[replies API] Full activity data:`, JSON.stringify(activity, null, 2));
-
     const replies = activity.replies || [];
-    console.log(`[replies API] Returning ${replies.length} replies for activity ${activityId}`);
-    
     return NextResponse.json(replies);
   } catch (error) {
     console.error('Error fetching replies:', error);

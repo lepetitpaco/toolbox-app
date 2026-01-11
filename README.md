@@ -29,6 +29,11 @@ A Next.js application providing various tools and utilities, including an AniLis
 - Node.js 20+
 - Docker & Docker Compose
 - An external Docker network named `infra_net` (for database connection)
+- AniList OAuth credentials (for login feature):
+  - Go to [AniList Developer Settings](https://anilist.co/settings/developer)
+  - Create a new application
+  - Set the redirect URI to: `http://localhost:3000/api/anilist/auth/callback` (or your production URL)
+  - Copy your `Client ID` and `Client Secret`
 
 ### Installation
 
@@ -42,6 +47,20 @@ cd toolbox-app
 ```bash
 npm install
 ```
+
+3. Configure AniList OAuth (optional, required for login feature):
+   - Go to [AniList Developer Settings](https://anilist.co/settings/developer)
+   - Create a new application
+   - Set the redirect URI to: `http://localhost:3000/api/anilist/auth/callback`
+   - Copy your `Client ID` and `Client Secret`
+   - Create a `.env` file in the project root:
+     ```bash
+     cp env.example .env
+     # Edit .env and add your credentials:
+     # ANILIST_CLIENT_ID=your_client_id_here
+     # ANILIST_CLIENT_SECRET=your_client_secret_here
+     # ANILIST_REDIRECT_URI=http://localhost:3000/api/anilist/auth/callback
+     ```
 
 ### Development
 
