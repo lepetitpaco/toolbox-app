@@ -1371,7 +1371,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className={styles.activitiesList}>
+      <div className={`${styles.activitiesList} ${compactMode ? styles.activitiesListCompact : ''}`}>
           {filteredAndSortedActivities.map((activity) => (
             <div key={activity.id} className={`${styles.activityCard} ${compactMode ? styles.compactMode : ''}`}>
               <div className={styles.activityHeader}>
