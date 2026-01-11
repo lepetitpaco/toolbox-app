@@ -345,15 +345,56 @@
 /* User info in activities/home page (large format) */
 .userInfoPage {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  justify-content: center;
-  padding: 2rem 1rem;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem 1.5rem;
   margin-bottom: 2rem;
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(6px);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.userInfoMain {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.userStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  padding-top: 1.5rem;
+  border-top: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 10px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  min-width: 80px;
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #667eea;
 }
 
 .userAvatar {
@@ -1225,6 +1266,30 @@
 
 :global(.dark-mode) .userNameSmall {
   color: #ffffff;
+}
+
+:global(.dark-mode) .userInfoPage {
+  background: rgba(20, 20, 20, 0.85);
+  border-color: rgba(139, 154, 255, 0.4);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+:global(.dark-mode) .userStats {
+  border-top-color: rgba(139, 154, 255, 0.3);
+}
+
+:global(.dark-mode) .statItem {
+  background: rgba(139, 154, 255, 0.15);
+  border-color: rgba(139, 154, 255, 0.3);
+}
+
+:global(.dark-mode) .statLabel {
+  color: #bbb;
+}
+
+:global(.dark-mode) .statValue {
+  color: #8b9aff;
 }
 
 :global(.dark-mode) .logoutButton {

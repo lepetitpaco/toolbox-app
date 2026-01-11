@@ -11,6 +11,20 @@ const GET_USER_ID = `
         large
         medium
       }
+      statistics {
+        anime {
+          count
+          episodesWatched
+          meanScore
+          minutesWatched
+        }
+        manga {
+          count
+          chaptersRead
+          volumesRead
+          meanScore
+        }
+      }
     }
   }
 `;
@@ -39,25 +53,53 @@ export async function GET(request: NextRequest) {
       }),
     });
 
+    // Read response as text first to capture any errors
+    const responseText = await response.text();
+
     if (!response.ok) {
+      console.error(`[user API] AniList API returned HTTP ${response.status}:`, responseText);
       if (response.status === 429) {
         return NextResponse.json(
           { error: 'Too many requests. Please wait a moment and try again.' },
           { status: 429 }
         );
       }
+      // Try to parse error details from response
+      let errorDetails = responseText;
+      try {
+        const errorData = JSON.parse(responseText);
+        if (errorData.errors) {
+          errorDetails = errorData.errors;
+        } else if (errorData.error) {
+          errorDetails = errorData.error;
+        }
+      } catch (e) {
+        // Keep responseText as is if parsing fails
+      }
       return NextResponse.json(
-        { error: `HTTP Error: ${response.status}` },
+        { error: `HTTP Error: ${response.status}`, details: errorDetails },
         { status: response.status }
       );
     }
 
-    const data = await response.json();
+    // Parse JSON response
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[user API] Failed to parse response as JSON:', e);
+      return NextResponse.json(
+        { error: 'Invalid JSON response', details: responseText },
+        { status: 500 }
+      );
+    }
 
     if (data.errors) {
+      console.error('[user API] AniList GraphQL errors:', JSON.stringify(data.errors, null, 2));
+      const errorMessages = data.errors.map((e: any) => e.message).join(', ');
       return NextResponse.json(
-        { error: 'User not found', details: data.errors },
-        { status: 404 }
+        { error: `GraphQL error: ${errorMessages}`, details: data.errors },
+        { status: 400 }
       );
     }
 
@@ -68,7 +110,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(data.data.User);
+    // Return user data (followers/following are not available in public API)
+    const user = data.data.User;
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json(

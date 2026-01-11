@@ -400,6 +400,11 @@ export default function ActivitiesPage() {
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             placeholder="AniList username"
             className={styles.searchInput}
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-bwignore="true"
+            data-form-type="other"
           />
           <button 
             onClick={handleSearch} 
@@ -460,14 +465,81 @@ export default function ActivitiesPage() {
 
       {user && (
         <div className={styles.userInfoPage}>
-          {user.avatar?.medium && (
-            <img 
-              src={user.avatar.medium} 
-              alt={user.name}
-              className={styles.userAvatar}
-            />
+          <div className={styles.userInfoMain}>
+            {user.avatar?.medium && (
+              <img 
+                src={user.avatar.medium} 
+                alt={user.name}
+                className={styles.userAvatar}
+              />
+            )}
+            <span className={styles.userName}>{user.name}</span>
+          </div>
+          
+          {user.statistics && (
+            <div className={styles.userStats}>
+              {user.statistics.anime && (
+                <>
+                  {user.statistics.anime.count !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Anime</span>
+                      <span className={styles.statValue}>{user.statistics.anime.count}</span>
+                    </div>
+                  )}
+                  {user.statistics.anime.episodesWatched !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Episodes</span>
+                      <span className={styles.statValue}>{user.statistics.anime.episodesWatched.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {user.statistics.anime.meanScore !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Avg Score</span>
+                      <span className={styles.statValue}>{(user.statistics.anime.meanScore / 10).toFixed(1)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              {user.statistics.manga && (
+                <>
+                  {user.statistics.manga.count !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Manga</span>
+                      <span className={styles.statValue}>{user.statistics.manga.count}</span>
+                    </div>
+                  )}
+                  {user.statistics.manga.chaptersRead !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Chapters</span>
+                      <span className={styles.statValue}>{user.statistics.manga.chaptersRead.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {user.statistics.manga.meanScore !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Avg Score</span>
+                      <span className={styles.statValue}>{(user.statistics.manga.meanScore / 10).toFixed(1)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              {(user.statistics.followers !== undefined || user.statistics.following !== undefined) && (
+                <>
+                  {user.statistics.followers !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Followers</span>
+                      <span className={styles.statValue}>{user.statistics.followers.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {user.statistics.following !== undefined && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statLabel}>Following</span>
+                      <span className={styles.statValue}>{user.statistics.following.toLocaleString()}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           )}
-          <span className={styles.userName}>{user.name}</span>
         </div>
       )}
 

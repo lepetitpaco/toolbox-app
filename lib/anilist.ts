@@ -2,6 +2,24 @@
 
 const ANILIST_API_URL = 'https://graphql.anilist.co';
 
+export interface UserStatistics {
+  anime?: {
+    count?: number;
+    episodesWatched?: number;
+    meanScore?: number;
+    minutesWatched?: number;
+  };
+  manga?: {
+    count?: number;
+    chaptersRead?: number;
+    volumesRead?: number;
+    meanScore?: number;
+  };
+  // Note: followers and following are not available in the public AniList API
+  followers?: number;
+  following?: number;
+}
+
 export interface AniListUser {
   id: number;
   name: string;
@@ -9,6 +27,7 @@ export interface AniListUser {
     large?: string;
     medium?: string;
   };
+  statistics?: UserStatistics;
 }
 
 export interface ActivityComment {
@@ -317,11 +336,19 @@ export async function fetchUserId(username: string): Promise<AniListUser | null>
         const errorMessage = errorData.error || 'Trop de requêtes. Veuillez attendre quelques secondes avant de réessayer.';
         throw new Error('RATE_LIMIT: ' + errorMessage);
       }
-      console.error('HTTP Error:', response.status, errorData);
+      
+      // Build a descriptive error message
+      let errorMessage = `HTTP Error: ${response.status}`;
       if (errorData.error) {
-        throw new Error(errorData.error);
+        errorMessage = errorData.error;
+      } else if (errorData.details) {
+        errorMessage = `${errorMessage} - ${JSON.stringify(errorData.details)}`;
+      } else if (Object.keys(errorData).length > 0) {
+        errorMessage = `${errorMessage} - ${JSON.stringify(errorData)}`;
       }
-      return null;
+      
+      console.error('[fetchUserId] HTTP Error:', response.status, errorData);
+      throw new Error(errorMessage);
     }
 
     const userData = await response.json();
