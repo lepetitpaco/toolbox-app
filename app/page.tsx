@@ -42,6 +42,12 @@ const otherTools: Feature[] = [
     path: "/calculator",
     icon: "📝",
   },
+  {
+    name: "Date Calculator",
+    description: "Calculez une date future en ajoutant une durée (ex: 7J et 4h). Affiche la date et l'heure exacte résultante.",
+    path: "/date-calculator",
+    icon: "📅",
+  },
 ];
 
 export default function Home() {

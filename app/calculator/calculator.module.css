@@ -2,18 +2,43 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
-  background: #1e1e1e;
+  padding: 2rem;
+  background: var(--primary-gradient-overlay);
+  background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: var(--background-image);
+  background-position: var(--background-image-position, center);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  transform: scale(calc(var(--background-image-zoom, 100) / 100));
+  transform-origin: var(--background-image-position, center);
+  z-index: -1;
+  will-change: transform;
+  min-width: 100%;
+  min-height: 100%;
 }
 
 .terminal {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  border-radius: 8px;
+  background: rgba(30, 30, 30, 0.75);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -92,8 +117,9 @@
 }
 
 .tabActive {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(102, 126, 234, 0.2);
   color: #fff;
+  border: 1px solid rgba(102, 126, 234, 0.4);
 }
 
 .tabClose {
@@ -178,7 +204,7 @@
 }
 
 .textarea::selection {
-  background: rgba(0, 122, 204, 0.3);
+  background: rgba(102, 126, 234, 0.3);
 }
 
 .preview {
@@ -234,9 +260,10 @@
   gap: 0.5rem;
   margin-bottom: 1rem;
   justify-content: center;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 0.75rem 1rem;
+  background: #2d2d2d;
   border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
@@ -244,11 +271,11 @@
 }
 
 .modeButton {
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
   background: rgba(255, 255, 255, 0.05);
-  font-size: 0.875rem;
+  font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
@@ -258,13 +285,11 @@
 .modeButton:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .modeButtonActive {
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Desktop Mode */
@@ -297,8 +322,8 @@
 }
 
 .windowFocused {
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 48px rgba(102, 126, 234, 0.3);
+  border-color: rgba(102, 126, 234, 0.4);
 }
 
 .windowDragging {
@@ -415,7 +440,7 @@
 }
 
 .windowTextarea::selection {
-  background: rgba(0, 122, 204, 0.3);
+  background: rgba(102, 126, 234, 0.3);
 }
 
 .windowPreview {
@@ -501,12 +526,12 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #007acc;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   color: #fff;
   font-size: 2rem;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 122, 204, 0.4);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
   transition: all 0.2s ease;
   z-index: 1000;
   display: flex;
@@ -516,9 +541,8 @@
 }
 
 .desktopNewButton:hover {
-  background: #0098ff;
   transform: scale(1.1);
-  box-shadow: 0 6px 24px rgba(0, 122, 204, 0.6);
+  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.6);
 }
 
 .desktopFooter {
