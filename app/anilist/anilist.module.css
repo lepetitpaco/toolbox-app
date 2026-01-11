@@ -1022,6 +1022,24 @@
   font-style: italic;
 }
 
+.commentText :global(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.commentText :global(video) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .loadMoreSection {
   text-align: center;
   margin-top: 3rem;
@@ -1367,6 +1385,12 @@
 :global(.dark-mode) .commentText :global(blockquote) {
   border-left-color: #8b9aff;
   color: #d0d0d0;
+}
+
+:global(.dark-mode) .commentText :global(img),
+:global(.dark-mode) .commentText :global(video) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  opacity: 0.95;
 }
 
 :global(.dark-mode) .comment {
