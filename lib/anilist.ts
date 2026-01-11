@@ -271,10 +271,16 @@ const GET_ACTIVITY_REPLIES = `
   }
 `;
 
-export async function fetchActivityReplies(activityId: number): Promise<ActivityComment[] | null> {
+export async function fetchActivityReplies(activityId: number, accessToken?: string): Promise<ActivityComment[] | null> {
   try {
+    // Build headers with optional authentication (needed for isLiked field)
+    const headers: HeadersInit = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    
     // Use Next.js API route to avoid CORS issues
-    const response = await fetch(`/api/anilist/replies?activityId=${activityId}`);
+    const response = await fetch(`/api/anilist/replies?activityId=${activityId}`, { headers });
 
     if (!response.ok) {
       let errorData: any = {};
@@ -382,7 +388,8 @@ export async function fetchUserActivities(
   perPage: number = 50,
   type?: 'all' | 'text' | 'list' | 'message',
   mediaType?: 'all' | 'anime' | 'manga',
-  status?: string
+  status?: string,
+  accessToken?: string
 ): Promise<ActivityPage | null> {
   try {
     // Build query string
@@ -397,10 +404,16 @@ export async function fetchUserActivities(
     }
     // status is NOT passed - must be filtered client-side
     
+    // Build headers with optional authentication (needed for isLiked field)
+    const headers: HeadersInit = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
     
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(
-      `/api/anilist/activities?${queryString}`
+      `/api/anilist/activities?${queryString}`,
+      { headers }
     );
 
     if (!response.ok) {
@@ -681,14 +694,64 @@ export async function toggleActivityLike(
         errorMessage = `${errorMessage} - ${JSON.stringify(errorData)}`;
       }
       
-      console.error('[toggleActivityLike] Error response:', errorData);
+      console.error('[toggleActivityReplyLike] Error response:', errorData);
       throw new Error(errorMessage);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error toggling activity like:', error);
+    console.error('Error toggling activity reply like:', error);
+    throw error;
+  }
+}
+
+/**
+ * Toggle like status for an activity reply (comment).
+ * 
+ * @param accessToken - AniList OAuth access token
+ * @param replyId - The ID of the reply/comment to like/unlike
+ * @returns Object with updated like status and count, or null on error
+ * @throws Error if the request fails or token is invalid
+ */
+export async function toggleActivityReplyLike(
+  accessToken: string,
+  replyId: number
+): Promise<{ id: number; isLiked: boolean; likeCount: number } | null> {
+  try {
+    const response = await fetch('/api/anilist/activity-like', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ activityId: replyId, activityType: 'ACTIVITY_REPLY' }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        throw new Error('UNAUTHORIZED: Invalid or expired token');
+      }
+      
+      // Build a descriptive error message
+      let errorMessage = `HTTP Error: ${response.status}`;
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.details) {
+        errorMessage = `${errorMessage} - ${JSON.stringify(errorData.details)}`;
+      } else if (Object.keys(errorData).length > 0) {
+        errorMessage = `${errorMessage} - ${JSON.stringify(errorData)}`;
+      }
+      
+      console.error('[toggleActivityReplyLike] Error response:', errorData);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error toggling activity reply like:', error);
     throw error;
   }
 }

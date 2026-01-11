@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchUserId, fetchUserActivities, fetchActivityReplies, toggleActivityLike, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
+import { fetchUserId, fetchUserActivities, fetchActivityReplies, toggleActivityLike, toggleActivityReplyLike, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
 import styles from '../anilist.module.css';
 
 const STORAGE_KEY = 'anilist_username';
@@ -36,6 +36,7 @@ export default function HomePage() {
   const [savedUsers, setSavedUsers] = useState<SavedUser[]>([]);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [likingActivityId, setLikingActivityId] = useState<number | null>(null);
+  const [likingReplyId, setLikingReplyId] = useState<number | null>(null);
 
   // Load saved username, theme, and saved users from localStorage
   useEffect(() => {
@@ -133,7 +134,9 @@ export default function HomePage() {
       const typeToFetch = activityType || filter;
       const mediaTypeToFetch = mediaTypeFilter || mediaType;
       const statusToFetch = statusFilter || status;
-      const activitiesData = await fetchUserActivities(userData.id, pageNum, 50, typeToFetch, mediaTypeToFetch, statusToFetch);
+      // Pass access token if available to get isLiked status
+      const token = typeof window !== 'undefined' ? localStorage.getItem('anilist_access_token') : null;
+      const activitiesData = await fetchUserActivities(userData.id, pageNum, 50, typeToFetch, mediaTypeToFetch, statusToFetch, token || undefined);
       if (!activitiesData) {
         setError('Error loading activities. Check the console for more details.');
         setLoading(false);
@@ -396,7 +399,54 @@ export default function HomePage() {
     } finally {
       setLikingActivityId(null);
     }
-  }, [accessToken, likingActivityId]);
+  }, [accessToken, likingActivityId, activities]);
+
+  const handleReplyLike = useCallback(async (replyId: number, activityId: number) => {
+    if (!accessToken) {
+      alert('Please log in to like comments');
+      return;
+    }
+
+    if (likingReplyId === replyId) {
+      return; // Prevent double-click
+    }
+
+    setLikingReplyId(replyId);
+    try {
+      const result = await toggleActivityReplyLike(accessToken, replyId);
+      if (result) {
+        // Update the reply in the expanded comments
+        setExpandedComments(prev => {
+          const activityComments = prev[activityId];
+          if (!activityComments) return prev;
+          
+          return {
+            ...prev,
+            [activityId]: {
+              ...activityComments,
+              replies: activityComments.replies.map(reply =>
+                reply.id === replyId
+                  ? { ...reply, isLiked: result.isLiked, likeCount: result.likeCount }
+                  : reply
+              )
+            }
+          };
+        });
+      }
+    } catch (error: any) {
+      console.error('Error toggling reply like:', error);
+      if (error.message?.includes('UNAUTHORIZED')) {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('anilist_access_token');
+        localStorage.removeItem('anilist_user');
+        setAccessToken(null);
+      } else {
+        alert('Failed to like comment. Please try again.');
+      }
+    } finally {
+      setLikingReplyId(null);
+    }
+  }, [accessToken, likingReplyId]);
 
   const loadComments = useCallback(async (activityId: number) => {
     if (expandedComments[activityId]?.replies && expandedComments[activityId].replies.length > 0) {
@@ -415,7 +465,9 @@ export default function HomePage() {
     setExpandedComments(prev => ({ ...prev, [activityId]: { replies: [], loading: true } }));
     
     try {
-      const replies = await fetchActivityReplies(activityId);
+      // Pass access token if available to get isLiked status for replies
+      const token = typeof window !== 'undefined' ? localStorage.getItem('anilist_access_token') : null;
+      const replies = await fetchActivityReplies(activityId, token || undefined);
       setExpandedComments(prev => ({ 
         ...prev, 
         [activityId]: { 
@@ -851,11 +903,23 @@ export default function HomePage() {
                                 {formatDate(reply.createdAt)}
                               </span>
                             </div>
-                            {reply.likeCount !== undefined && reply.likeCount > 0 && (
-                              <span className={styles.commentLikes}>
-                                ❤️ {reply.likeCount}
-                              </span>
-                            )}
+                            <div className={styles.commentStats}>
+                              {accessToken && (
+                                <button
+                                  onClick={() => handleReplyLike(reply.id, activity.id)}
+                                  disabled={likingReplyId === reply.id}
+                                  className={`${styles.commentLikeButton} ${reply.isLiked ? styles.liked : ''}`}
+                                  title={reply.isLiked ? 'Unlike' : 'Like'}
+                                >
+                                  {reply.isLiked ? '❤️' : '🤍'} {reply.likeCount || 0}
+                                </button>
+                              )}
+                              {!accessToken && reply.likeCount !== undefined && reply.likeCount > 0 && (
+                                <span className={styles.commentLikes}>
+                                  ❤️ {reply.likeCount}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {(reply.text || reply.comment) && (
                             <div 

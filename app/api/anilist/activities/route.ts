@@ -81,6 +81,7 @@ export async function GET(request: NextRequest) {
   const perPage = searchParams.get('perPage') || '50';
   const activityType = searchParams.get('type'); // 'text', 'list', 'message', 'anime', 'manga', or null for all
   const mediaType = searchParams.get('mediaType'); // 'anime', 'manga', or null
+  const authHeader = request.headers.get('authorization');
 
   if (!userId) {
     return NextResponse.json(
@@ -127,12 +128,20 @@ export async function GET(request: NextRequest) {
       variables,
     };
 
+    // Build headers with optional authentication
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    // Add authorization header if provided (needed for isLiked field)
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      headers['Authorization'] = authHeader;
+    }
+
     const response = await fetch(ANILIST_API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 

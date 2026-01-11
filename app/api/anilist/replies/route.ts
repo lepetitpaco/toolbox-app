@@ -68,6 +68,7 @@ const GET_ACTIVITY_REPLIES = `
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const activityId = searchParams.get('activityId');
+  const authHeader = request.headers.get('authorization');
 
   if (!activityId) {
     return NextResponse.json(
@@ -77,12 +78,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Build headers with optional authentication (needed for isLiked field)
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    // Add authorization header if provided (needed for isLiked field)
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      headers['Authorization'] = authHeader;
+    }
+
     const response = await fetch(ANILIST_API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         query: GET_ACTIVITY_REPLIES,
         variables: { activityId: parseInt(activityId, 10) },
