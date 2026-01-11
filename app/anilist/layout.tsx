@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { ApiRequestProvider, useApiRequest } from './contexts/ApiRequestContext';
 import styles from './anilist.module.css';
 
 const THEME_KEY = 'anilist_theme';
@@ -166,26 +167,28 @@ export default function AniListLayout({
   };
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <AniListLayoutContent
-        activeTab={activeTab}
-        isDarkMode={isDarkMode}
-        colorTheme={colorTheme}
-        backgroundImage={backgroundImage}
-        showThemeSelector={showThemeSelector}
-        authUser={authUser}
-        accessToken={accessToken}
-        onTabChange={handleTabChange}
-        onToggleDarkMode={toggleDarkMode}
-        onColorThemeChange={handleColorThemeChange}
-        onBackgroundImageChange={handleBackgroundImageChange}
-        onToggleThemeSelector={() => setShowThemeSelector(!showThemeSelector)}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      >
-        {children}
-      </AniListLayoutContent>
-    </Suspense>
+    <ApiRequestProvider>
+      <Suspense fallback={<div>Loading...</div>}>
+        <AniListLayoutContent
+          activeTab={activeTab}
+          isDarkMode={isDarkMode}
+          colorTheme={colorTheme}
+          backgroundImage={backgroundImage}
+          showThemeSelector={showThemeSelector}
+          authUser={authUser}
+          accessToken={accessToken}
+          onTabChange={handleTabChange}
+          onToggleDarkMode={toggleDarkMode}
+          onColorThemeChange={handleColorThemeChange}
+          onBackgroundImageChange={handleBackgroundImageChange}
+          onToggleThemeSelector={() => setShowThemeSelector(!showThemeSelector)}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+        >
+          {children}
+        </AniListLayoutContent>
+      </Suspense>
+    </ApiRequestProvider>
   );
 }
 
@@ -225,6 +228,7 @@ function AniListLayoutContent({
   const searchParams = useSearchParams();
   const router = useRouter();
   const themeSelectorRef = useRef<HTMLDivElement>(null);
+  const { requestCount, resetRequestCount } = useApiRequest();
 
   // Close theme selector when clicking outside
   useEffect(() => {
@@ -472,6 +476,19 @@ function AniListLayoutContent({
       <main className={styles.main}>
         {children}
       </main>
+      
+      {/* API Request Counter - Fixed bottom right, visible everywhere */}
+      <div className={styles.apiRequestCounter}>
+        <div className={styles.counterLabel}>API Requests</div>
+        <div className={styles.counterValue}>{requestCount}</div>
+        <button 
+          onClick={resetRequestCount}
+          className={styles.resetButton}
+          title="Reset counter"
+        >
+          ↻
+        </button>
+      </div>
     </div>
   );
 }

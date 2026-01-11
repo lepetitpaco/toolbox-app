@@ -2,6 +2,27 @@
 
 const ANILIST_API_URL = 'https://graphql.anilist.co';
 
+// Import increment function (will be available in browser context)
+declare global {
+  interface Window {
+    incrementApiRequestCount?: () => void;
+    resetApiRequestCount?: () => void;
+    __apiRequestCount?: number;
+  }
+}
+
+// Helper function to increment API request count
+function incrementRequestCount() {
+  if (typeof window !== 'undefined') {
+    if (window.incrementApiRequestCount) {
+      window.incrementApiRequestCount();
+    } else {
+      // Fallback: dispatch custom event
+      window.dispatchEvent(new CustomEvent('increment-api-request'));
+    }
+  }
+}
+
 export interface UserStatistics {
   anime?: {
     count?: number;
@@ -272,6 +293,7 @@ const GET_ACTIVITY_REPLIES = `
 `;
 
 export async function fetchActivityReplies(activityId: number, accessToken?: string): Promise<ActivityComment[] | null> {
+  console.log(`[fetchActivityReplies] 🔵 Starting - activityId: ${activityId}, hasToken: ${!!accessToken}`);
   try {
     // Build headers with optional authentication (needed for isLiked field)
     const headers: HeadersInit = {};
@@ -279,8 +301,13 @@ export async function fetchActivityReplies(activityId: number, accessToken?: str
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     
+    incrementRequestCount();
+    console.log(`[fetchActivityReplies] 📡 Making API request to /api/anilist/replies?activityId=${activityId}`);
+    
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(`/api/anilist/replies?activityId=${activityId}`, { headers });
+    
+    console.log(`[fetchActivityReplies] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       let errorData: any = {};
@@ -344,6 +371,7 @@ export async function fetchUserMediaListActivities(
   mediaId: number,
   accessToken?: string
 ): Promise<ActivityStatus[]> {
+  console.log(`[fetchUserMediaListActivities] 🔵 Starting - userId: ${userId}, mediaId: ${mediaId}, hasToken: ${!!accessToken}`);
   try {
     // Determine media type from mediaId (we'll need to fetch it or pass it)
     // For now, we'll fetch both ANIME_LIST and MANGA_LIST and filter
@@ -398,9 +426,15 @@ export async function fetchUserMediaListActivities(
 }
 
 export async function fetchUserId(username: string): Promise<AniListUser | null> {
+  console.log(`[fetchUserId] 🔵 Starting - username: ${username}`);
   try {
+    incrementRequestCount();
+    console.log(`[fetchUserId] 📡 Making API request to /api/anilist/user?username=${encodeURIComponent(username)}`);
+    
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(`/api/anilist/user?username=${encodeURIComponent(username)}`);
+    
+    console.log(`[fetchUserId] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -426,7 +460,7 @@ export async function fetchUserId(username: string): Promise<AniListUser | null>
     const userData = await response.json();
     
     if (userData.error) {
-      console.error('API Error:', userData.error);
+      console.error('[fetchUserId] ❌ API Error:', userData.error);
       // Check if it's a rate limit error in the error message
       if (userData.error.includes('Too many requests') || userData.error.includes('rate limit') || userData.error.includes('429')) {
         throw new Error('RATE_LIMIT: ' + userData.error);
@@ -434,11 +468,12 @@ export async function fetchUserId(username: string): Promise<AniListUser | null>
       throw new Error(userData.error);
     }
 
+    console.log(`[fetchUserId] ✅ Success - user: ${userData.name || userData.id}`);
     return userData;
   } catch (error) {
-    console.error('Error fetching user ID:', error);
+    console.error('[fetchUserId] ❌ Error:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('Network error - check your internet connection');
+      console.error('[fetchUserId] 🌐 Network error - check your internet connection');
     }
     return null;
   }
@@ -455,6 +490,10 @@ export async function fetchUserActivities(
   createdAtGreater?: number,
   createdAtLesser?: number
 ): Promise<ActivityPage | null> {
+  console.log(`[fetchUserActivities] 🔵 Starting - userId: ${userId}, page: ${page}, perPage: ${perPage}, type: ${type || 'all'}, mediaType: ${mediaType || 'all'}, hasToken: ${!!accessToken}`);
+  if (createdAtGreater || createdAtLesser) {
+    console.log(`[fetchUserActivities] 📅 Date filters - greater: ${createdAtGreater}, lesser: ${createdAtLesser}`);
+  }
   try {
     // Build query string
     // Note: status is filtered client-side, but mediaType can be used to filter by ANIME_LIST/MANGA_LIST
@@ -481,11 +520,16 @@ export async function fetchUserActivities(
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     
+    incrementRequestCount();
+    console.log(`[fetchUserActivities] 📡 Making API request to /api/anilist/activities?${queryString}`);
+    
     // Use Next.js API route to avoid CORS issues
     const response = await fetch(
       `/api/anilist/activities?${queryString}`,
       { headers }
     );
+    
+    console.log(`[fetchUserActivities] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       let errorData: any = {};
@@ -529,6 +573,7 @@ export async function fetchUserActivities(
 
     const activities: ActivityStatus[] = data.activities || [];
     const pageInfo = data.pageInfo || { currentPage: page, hasNextPage: false };
+    console.log(`[fetchUserActivities] ✅ Success - received ${activities.length} activities (page ${pageInfo.currentPage}, hasNext: ${pageInfo.hasNextPage})`);
 
 
     // For now, just return all activities without fetching replies
@@ -552,8 +597,14 @@ export async function fetchUserActivities(
 
 // Fetch a single media by ID
 export async function fetchMediaById(mediaId: number): Promise<Media | null> {
+  console.log(`[fetchMediaById] 🔵 Starting - mediaId: ${mediaId}`);
   try {
+    incrementRequestCount();
+    console.log(`[fetchMediaById] 📡 Making API request to /api/anilist/media?id=${mediaId}`);
+    
     const response = await fetch(`/api/anilist/media?id=${mediaId}`);
+    
+    console.log(`[fetchMediaById] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -570,18 +621,19 @@ export async function fetchMediaById(mediaId: number): Promise<Media | null> {
     const data = await response.json();
     
     if (data.error) {
-      console.error('API Error:', data.error);
+      console.error('[fetchMediaById] ❌ API Error:', data.error);
       if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
         throw new Error('RATE_LIMIT: ' + data.error);
       }
       throw new Error(data.error);
     }
 
+    console.log(`[fetchMediaById] ✅ Success - media: ${data.title?.userPreferred || data.title?.romaji || data.id}`);
     return data;
   } catch (error) {
-    console.error('Error fetching media by ID:', error);
+    console.error('[fetchMediaById] ❌ Error:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('Network error - check your internet connection');
+      console.error('[fetchMediaById] 🌐 Network error - check your internet connection');
     }
     throw error;
   }
@@ -594,12 +646,20 @@ export async function searchMedia(
   page: number = 1,
   perPage: number = 10
 ): Promise<MediaSearchResult | null> {
+  console.log(`[searchMedia] 🔵 Starting - query: "${query}", type: ${type || 'ALL'}, page: ${page}, perPage: ${perPage}`);
   try {
     if (!query || query.trim().length < 2) {
+      console.log('[searchMedia] ⏭️ Skipping - query too short');
       return null;
     }
 
-    const response = await fetch(`/api/anilist/search?query=${encodeURIComponent(query)}&type=${type || 'ALL'}&page=${page}&perPage=${perPage}`);
+    incrementRequestCount();
+    const url = `/api/anilist/search?query=${encodeURIComponent(query)}&type=${type || 'ALL'}&page=${page}&perPage=${perPage}`;
+    console.log(`[searchMedia] 📡 Making API request to ${url}`);
+    
+    const response = await fetch(url);
+    
+    console.log(`[searchMedia] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -616,18 +676,26 @@ export async function searchMedia(
     const data = await response.json();
     
     if (data.error) {
-      console.error('API Error:', data.error);
+      console.error('[searchMedia] ❌ API Error:', data.error);
       if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
         throw new Error('RATE_LIMIT: ' + data.error);
       }
       throw new Error(data.error);
     }
 
-    return data;
+    const result = {
+      page: data.page || 1,
+      perPage: data.perPage || perPage,
+      total: data.total || 0,
+      lastPage: data.lastPage || 1,
+      media: data.media || [],
+    };
+    console.log(`[searchMedia] ✅ Success - found ${result.media.length} results (total: ${result.total})`);
+    return result;
   } catch (error) {
-    console.error('Error searching media:', error);
+    console.error('[searchMedia] ❌ Error:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      console.error('Network error - check your internet connection');
+      console.error('[searchMedia] 🌐 Network error - check your internet connection');
     }
     throw error;
   }
@@ -635,13 +703,19 @@ export async function searchMedia(
 
 // Get followed users (requires authentication)
 export async function getFollowedUsers(accessToken: string): Promise<AniListUser[] | null> {
+  console.log('[getFollowedUsers] 🔵 Starting');
   try {
+    incrementRequestCount();
+    console.log('[getFollowedUsers] 📡 Making API request to /api/anilist/following');
+    
     const response = await fetch('/api/anilist/following', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
     });
+    
+    console.log(`[getFollowedUsers] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -652,9 +726,11 @@ export async function getFollowedUsers(accessToken: string): Promise<AniListUser
     }
 
     const data = await response.json();
-    return data.users || [];
+    const users = data.users || [];
+    console.log(`[getFollowedUsers] ✅ Success - found ${users.length} followed users`);
+    return users;
   } catch (error) {
-    console.error('Error fetching followed users:', error);
+    console.error('[getFollowedUsers] ❌ Error:', error);
     throw error;
   }
 }
@@ -673,6 +749,73 @@ export interface UserMediaScore {
 }
 
 /**
+ * Fetch media info and followed users scores in a single request.
+ * This reduces API calls and helps avoid rate limiting.
+ * 
+ * @param mediaId - The ID of the media to get info and scores for
+ * @param accessToken - AniList OAuth access token (optional, only needed for scores)
+ * @returns Object with media info and scores array, or null on error
+ * @throws Error if the request fails
+ */
+export async function fetchMediaWithScores(
+  mediaId: number,
+  accessToken?: string
+): Promise<{ media: Media; scores: UserMediaScore[] } | null> {
+  console.log(`[fetchMediaWithScores] 🔵 Starting - mediaId: ${mediaId}, hasToken: ${!!accessToken}`);
+  try {
+    const headers: HeadersInit = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    incrementRequestCount();
+    console.log(`[fetchMediaWithScores] 📡 Making API request to /api/anilist/media-with-scores?mediaId=${mediaId}`);
+
+    const response = await fetch(`/api/anilist/media-with-scores?mediaId=${mediaId}`, {
+      method: 'GET',
+      headers,
+    });
+    
+    console.log(`[fetchMediaWithScores] 📥 Response received - status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 429) {
+        throw new Error('RATE_LIMIT: Too many requests. Please wait a moment and try again.');
+      }
+      console.error('HTTP Error:', response.status, errorData);
+      if (errorData.error) {
+        throw new Error(errorData.error);
+      }
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error('[fetchMediaWithScores] ❌ API Error:', data.error);
+      if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
+        throw new Error('RATE_LIMIT: ' + data.error);
+      }
+      throw new Error(data.error);
+    }
+
+    const result = {
+      media: data.media,
+      scores: data.scores || [],
+    };
+    console.log(`[fetchMediaWithScores] ✅ Success - media: ${result.media.title?.userPreferred || result.media.id}, scores: ${result.scores.length}`);
+    return result;
+  } catch (error) {
+    console.error('[fetchMediaWithScores] ❌ Error:', error);
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('[fetchMediaWithScores] 🌐 Network error - check your internet connection');
+    }
+    throw error;
+  }
+}
+
+/**
  * Get scores from followed users for a specific media.
  * 
  * This function fetches the scores, status, and progress of all users
@@ -688,13 +831,19 @@ export async function getFollowedUsersScores(
   accessToken: string,
   mediaId: number
 ): Promise<UserMediaScore[] | null> {
+  console.log(`[getFollowedUsersScores] 🔵 Starting - mediaId: ${mediaId}`);
   try {
+    incrementRequestCount();
+    console.log(`[getFollowedUsersScores] 📡 Making API request to /api/anilist/media-scores?mediaId=${mediaId}`);
+    
     const response = await fetch(`/api/anilist/media-scores?mediaId=${mediaId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
     });
+    
+    console.log(`[getFollowedUsersScores] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -726,9 +875,11 @@ export async function getFollowedUsersScores(
     }
 
     const data = await response.json();
-    return data.scores || [];
+    const scores = data.scores || [];
+    console.log(`[getFollowedUsersScores] ✅ Success - found ${scores.length} scores`);
+    return scores;
   } catch (error) {
-    console.error('[getFollowedUsersScores] Error:', error);
+    console.error('[getFollowedUsersScores] ❌ Error:', error);
     throw error;
   }
 }
@@ -747,7 +898,11 @@ export async function toggleActivityLike(
   activityId: number,
   activityType?: string
 ): Promise<{ id: number; isLiked: boolean; likeCount: number } | null> {
+  console.log(`[toggleActivityLike] 🔵 Starting - activityId: ${activityId}, activityType: ${activityType || 'unknown'}`);
   try {
+    incrementRequestCount();
+    console.log(`[toggleActivityLike] 📡 Making API request to /api/anilist/activity-like`);
+    
     const response = await fetch('/api/anilist/activity-like', {
       method: 'POST',
       headers: {
@@ -756,6 +911,8 @@ export async function toggleActivityLike(
       },
       body: JSON.stringify({ activityId, activityType }),
     });
+    
+    console.log(`[toggleActivityLike] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -797,7 +954,11 @@ export async function toggleActivityReplyLike(
   accessToken: string,
   replyId: number
 ): Promise<{ id: number; isLiked: boolean; likeCount: number } | null> {
+  console.log(`[toggleActivityReplyLike] 🔵 Starting - replyId: ${replyId}`);
   try {
+    incrementRequestCount();
+    console.log(`[toggleActivityReplyLike] 📡 Making API request to /api/anilist/activity-like`);
+    
     const response = await fetch('/api/anilist/activity-like', {
       method: 'POST',
       headers: {
@@ -806,6 +967,8 @@ export async function toggleActivityReplyLike(
       },
       body: JSON.stringify({ activityId: replyId, activityType: 'ACTIVITY_REPLY' }),
     });
+    
+    console.log(`[toggleActivityReplyLike] 📥 Response received - status: ${response.status}`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

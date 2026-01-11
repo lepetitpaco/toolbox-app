@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { searchMedia, fetchMediaById, Media, getFollowedUsersScores, UserMediaScore, fetchUserMediaListActivities, ActivityStatus } from '@/lib/anilist';
+import { searchMedia, fetchMediaById, fetchMediaWithScores, Media, getFollowedUsersScores, UserMediaScore, fetchUserMediaListActivities, ActivityStatus } from '@/lib/anilist';
+import { useApiRequest } from '../contexts/ApiRequestContext';
 import styles from './search.module.css';
 
 const AUTH_TOKEN_KEY = 'anilist_access_token';
-const SCORES_CACHE_KEY = 'anilist_scores_cache';
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -23,104 +23,9 @@ function SearchContent() {
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [expandedUserActivities, setExpandedUserActivities] = useState<Record<number, ActivityStatus[]>>({});
   const [loadingUserActivities, setLoadingUserActivities] = useState<Record<number, boolean>>({});
+  const { incrementRequestCount } = useApiRequest();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
-  
-  // Cache for scores stored in localStorage (with TTL)
-  // Structure: { [mediaId]: { data: UserMediaScore[], timestamp: number } }
-  const lastScoresMediaIdRef = useRef<number | null>(null);
-  
-  // TTL (Time To Live) in milliseconds - 10 minutes
-  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-  
-  // Helper functions to manage localStorage cache
-  const getScoresCache = useCallback((): { 
-    [mediaId: number]: { 
-      data: UserMediaScore[], 
-      timestamp: number 
-    } 
-  } => {
-    if (typeof window === 'undefined') return {};
-    
-    try {
-      const cached = localStorage.getItem(SCORES_CACHE_KEY);
-      if (!cached) return {};
-      
-      const parsed = JSON.parse(cached);
-      // Clean expired entries when loading
-      const now = Date.now();
-      const cleaned: typeof parsed = {};
-      
-      Object.keys(parsed).forEach(mediaIdStr => {
-        const mediaId = parseInt(mediaIdStr, 10);
-        const entry = parsed[mediaId];
-        if (entry && (now - entry.timestamp) < CACHE_TTL) {
-          cleaned[mediaId] = entry;
-        }
-      });
-      
-      // Update localStorage with cleaned cache
-      if (Object.keys(cleaned).length !== Object.keys(parsed).length) {
-        localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cleaned));
-      }
-      
-      return cleaned;
-    } catch (e) {
-      console.error('Error reading scores cache from localStorage:', e);
-      // Clear corrupted cache
-      try {
-        localStorage.removeItem(SCORES_CACHE_KEY);
-      } catch {}
-      return {};
-    }
-  }, [CACHE_TTL]);
-  
-  const setScoresCache = useCallback((mediaId: number, scores: UserMediaScore[]) => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      const cache = getScoresCache();
-      cache[mediaId] = {
-        data: scores,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cache));
-    } catch (e) {
-      console.error('Error saving scores cache to localStorage:', e);
-      // If quota exceeded, try to clean old entries
-      try {
-        const cache = getScoresCache();
-        // Remove oldest entries (keep only most recent 10)
-        const entries = Object.entries(cache).sort((a, b) => b[1].timestamp - a[1].timestamp);
-        const cleaned: typeof cache = {};
-        entries.slice(0, 10).forEach(([mediaIdStr, entry]) => {
-          cleaned[parseInt(mediaIdStr, 10)] = entry;
-        });
-        localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cleaned));
-        
-        // Retry saving
-        cleaned[mediaId] = {
-          data: scores,
-          timestamp: Date.now()
-        };
-        localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cleaned));
-      } catch (e2) {
-        console.error('Failed to save cache even after cleanup:', e2);
-      }
-    }
-  }, [getScoresCache]);
-  
-  const removeScoresCache = useCallback((mediaId: number) => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      const cache = getScoresCache();
-      delete cache[mediaId];
-      localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cache));
-    } catch (e) {
-      console.error('Error removing from scores cache:', e);
-    }
-  }, [getScoresCache]);
 
   /**
    * Check if user is authenticated and monitor token changes.
@@ -161,21 +66,36 @@ function SearchContent() {
     };
   }, []);
 
-  // Load media by ID from URL parameter
+  // Load media by ID from URL parameter and scores in a single request
   useEffect(() => {
+    console.log('[SearchPage] 🔄 useEffect triggered - searchParams changed');
     const mediaIdParam = searchParams.get('mediaId');
     if (mediaIdParam) {
       const mediaId = parseInt(mediaIdParam, 10);
       if (!isNaN(mediaId)) {
+        console.log(`[SearchPage] 📋 Loading media from URL - mediaId: ${mediaId}`);
         setLoading(true);
+        setLoadingScores(true);
         setError(null);
-        fetchMediaById(mediaId)
-          .then((media) => {
-            if (media) {
-              setSelectedMedia(media);
-              setQuery(media.title?.userPreferred || media.title?.romaji || media.title?.english || '');
-              setMediaType(media.type || 'ALL');
+        setTokenError(null);
+        
+        const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+        console.log(`[SearchPage] 🔑 Token status: ${token ? 'present' : 'missing'}`);
+        
+        // Fetch media and scores in a single request
+        console.log(`[SearchPage] 🚀 Calling fetchMediaWithScores for mediaId: ${mediaId}`);
+        // Note: fetchMediaWithScores will increment the counter internally
+        fetchMediaWithScores(mediaId, token || undefined)
+          .then((result) => {
+            console.log(`[SearchPage] ✅ fetchMediaWithScores completed`, result);
+            if (result) {
+              console.log(`[SearchPage] 📝 Setting media: ${result.media.title?.userPreferred}, scores: ${result.scores.length}`);
+              setSelectedMedia(result.media);
+              setQuery(result.media.title?.userPreferred || result.media.title?.romaji || result.media.title?.english || '');
+              setMediaType(result.media.type || 'ALL');
+              setFollowedScores(result.scores);
             } else {
+              console.log('[SearchPage] ⚠️ Media not found');
               setError('Media not found');
             }
           })
@@ -186,118 +106,32 @@ function SearchContent() {
                 errorMessage.includes('rate limit') ||
                 errorMessage.toLowerCase().includes('429')) {
               setError('⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.');
+            } else if (errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('401')) {
+              // Handle token expiration/invalidation
+              if (token) {
+                localStorage.removeItem(AUTH_TOKEN_KEY);
+                localStorage.removeItem('anilist_user');
+                setHasToken(false);
+                setTokenError('Your session has expired. Please log in again.');
+              }
+              setError(errorMessage);
             } else {
               setError(errorMessage);
             }
-          })
-          .finally(() => {
-            setLoading(false);
-          });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  /**
-   * Load scores from followed users when a media is selected.
-   * 
-   * This effect:
-   * - Checks if user is authenticated (has token)
-   * - Fetches scores from followed users for the selected media
-   * - Uses cache to avoid refetching the same media
-   * - Handles token expiration (clears auth data and shows error)
-   * - Updates UI with scores or error messages
-   */
-  useEffect(() => {
-    if (selectedMedia?.id) {
-      const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
-      
-      // Check cache first with TTL validation
-      const cache = getScoresCache();
-      const cachedEntry = cache[selectedMedia.id];
-      
-      if (cachedEntry && lastScoresMediaIdRef.current === selectedMedia.id) {
-        // Cache is already validated by getScoresCache (expired entries removed)
-        // Use it directly
-        setFollowedScores(cachedEntry.data);
-        setLoadingScores(false);
-        return;
-      }
-      
-      if (token) {
-        setLoadingScores(true);
-        setTokenError(null);
-        
-        getFollowedUsersScores(token, selectedMedia.id)
-          .then((scores) => {
-            // Cache the scores in localStorage with current timestamp
-            setScoresCache(selectedMedia.id, scores || []);
-            lastScoresMediaIdRef.current = selectedMedia.id;
-            // Update scores state with fetched data
-            setFollowedScores(scores || []);
-          })
-          .catch((err: any) => {
-            const errorMessage = err?.message || '';
-            
-            // Handle token expiration/invalidation
-            if (errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('401')) {
-              // Clear expired token and auth data
-              localStorage.removeItem(AUTH_TOKEN_KEY);
-              localStorage.removeItem('anilist_user');
-              setHasToken(false);
-              setTokenError('Your session has expired. Please log in again.');
-            } else {
-              // Other errors (400, network errors, etc.)
-              setTokenError(`Error loading scores: ${errorMessage}`);
-            }
-            
             setFollowedScores([]);
           })
           .finally(() => {
+            setLoading(false);
             setLoadingScores(false);
           });
-      } else {
-        // No token, clear scores
-        setFollowedScores([]);
       }
     } else {
-      // No media selected, clear scores
+      // No mediaId in URL, clear everything
+      setSelectedMedia(null);
       setFollowedScores([]);
-      lastScoresMediaIdRef.current = null;
     }
-  }, [selectedMedia?.id, getScoresCache, setScoresCache]);
-  
-  // Cleanup expired cache entries periodically (every 5 minutes)
-  useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      if (typeof window === 'undefined') return;
-      
-      try {
-        const cache = getScoresCache();
-        const now = Date.now();
-        let hasChanges = false;
-        
-        // Remove expired entries
-        Object.keys(cache).forEach(mediaIdStr => {
-          const mediaId = parseInt(mediaIdStr, 10);
-          const entry = cache[mediaId];
-          if (entry && (now - entry.timestamp) >= CACHE_TTL) {
-            delete cache[mediaId];
-            hasChanges = true;
-          }
-        });
-        
-        // Update localStorage if changes were made
-        if (hasChanges) {
-          localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cache));
-        }
-      } catch (e) {
-        console.error('Error during cache cleanup:', e);
-      }
-    }, 5 * 60 * 1000); // Run every 5 minutes
-    
-    return () => clearInterval(cleanupInterval);
-  }, [getScoresCache]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Handle search with debounce for auto-completion
   const performSearch = useCallback(async (searchQuery: string, type: 'ALL' | 'ANIME' | 'MANGA') => {
@@ -383,10 +217,50 @@ function SearchContent() {
     }
   }, []);
 
-  const handleMediaSelect = (media: Media) => {
+  const handleMediaSelect = async (media: Media) => {
+    console.log(`[SearchPage] 🎯 handleMediaSelect called - media: ${media.title.userPreferred || media.id}`);
     setSelectedMedia(media);
     setShowSuggestions(false);
     setQuery(media.title.userPreferred || media.title.romaji || media.title.english || '');
+    
+    // Load scores in a single request with media info
+    const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+    console.log(`[SearchPage] 🔑 Token status for scores: ${token ? 'present' : 'missing'}`);
+    
+    if (token) {
+      setLoadingScores(true);
+      setTokenError(null);
+      
+      console.log(`[SearchPage] 🚀 Calling fetchMediaWithScores for mediaId: ${media.id}`);
+      // Note: fetchMediaWithScores will increment the counter internally
+      try {
+        const result = await fetchMediaWithScores(media.id, token);
+        console.log(`[SearchPage] ✅ fetchMediaWithScores completed`, result);
+        if (result) {
+          console.log(`[SearchPage] 📝 Setting scores: ${result.scores.length}`);
+          setFollowedScores(result.scores);
+        }
+      } catch (err: any) {
+        console.error('[SearchPage] ❌ Error in handleMediaSelect:', err);
+        const errorMessage = err?.message || '';
+        
+        // Handle token expiration/invalidation
+        if (errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('401')) {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+          localStorage.removeItem('anilist_user');
+          setHasToken(false);
+          setTokenError('Your session has expired. Please log in again.');
+        } else {
+          setTokenError(`Error loading scores: ${errorMessage}`);
+        }
+        
+        setFollowedScores([]);
+      } finally {
+        setLoadingScores(false);
+      }
+    } else {
+      setFollowedScores([]);
+    }
   };
 
   const formatDate = (date?: { year?: number; month?: number; day?: number }) => {
@@ -670,7 +544,9 @@ function SearchContent() {
                       ) : followedScores.length > 0 ? (
                         // Display scores list
                         <div className={styles.scoresList}>
-                          {followedScores.map((score) => (
+                          {Array.from(
+                            new Map(followedScores.map(score => [score.userId, score])).values()
+                          ).map((score) => (
                             <div key={score.userId}>
                               <div className={styles.scoreItem}>
                                 {/* User avatar */}

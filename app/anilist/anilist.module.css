@@ -2677,4 +2677,67 @@
   color: #b0b0b0;
 }
 
+/* API Request Counter - Fixed bottom right, visible everywhere */
+.apiRequestCounter {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(102, 126, 234, 0.95);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 100px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.counterLabel {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.counterValue {
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.resetButton {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.resetButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: rotate(90deg);
+}
+
+.resetButton:active {
+  transform: rotate(180deg);
+}
+
+:global(.dark-mode) .apiRequestCounter {
+  background: rgba(102, 126, 234, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Dark mode styles for main wrapper removed */
