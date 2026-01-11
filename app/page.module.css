@@ -30,24 +30,31 @@
 
 .toolsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .toolCard {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  text-decoration: none;
+  gap: 1.5rem;
   color: inherit;
   transition: all 0.3s ease;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
+}
+
+.toolHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .toolCard::before {
@@ -112,6 +119,66 @@
   font-weight: 600;
 }
 
+.featuresList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.featureItem:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateX(4px);
+}
+
+.featureItem:hover .featureArrow {
+  transform: translateX(4px);
+}
+
+.featureIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.featureContent {
+  flex: 1;
+}
+
+.featureName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #1a1a1a;
+}
+
+.featureDescription {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.featureArrow {
+  font-size: 1.25rem;
+  color: #667eea;
+  transition: transform 0.3s ease;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .empty {
   text-align: center;
   padding: 3rem;
@@ -154,6 +221,24 @@
   }
 
   .toolDescription {
+    color: #999;
+  }
+
+  .featureItem {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.2);
+  }
+
+  .featureItem:hover {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.3);
+  }
+
+  .featureName {
+    color: #ededed;
+  }
+
+  .featureDescription {
     color: #999;
   }
 
