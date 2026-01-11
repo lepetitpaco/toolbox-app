@@ -451,7 +451,9 @@ export async function fetchUserActivities(
   type?: 'all' | 'text' | 'list' | 'message',
   mediaType?: 'all' | 'anime' | 'manga',
   status?: string,
-  accessToken?: string
+  accessToken?: string,
+  createdAtGreater?: number,
+  createdAtLesser?: number
 ): Promise<ActivityPage | null> {
   try {
     // Build query string
@@ -463,6 +465,13 @@ export async function fetchUserActivities(
     // Pass mediaType to filter by ANIME_LIST or MANGA_LIST on server-side
     if (mediaType && mediaType !== 'all') {
       queryString += `&mediaType=${mediaType}`;
+    }
+    // Add date filters if specified (Unix timestamps in seconds)
+    if (createdAtGreater !== undefined) {
+      queryString += `&createdAt_greater=${createdAtGreater}`;
+    }
+    if (createdAtLesser !== undefined) {
+      queryString += `&createdAt_lesser=${createdAtLesser}`;
     }
     // status is NOT passed - must be filtered client-side
     

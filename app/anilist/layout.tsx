@@ -26,7 +26,7 @@ export default function AniListLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [activeTab, setActiveTab] = useState<'home' | 'search'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'search' | 'compare'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [colorTheme, setColorTheme] = useState<ColorTheme>('default');
   const [backgroundImage, setBackgroundImage] = useState<string>('');
@@ -82,6 +82,8 @@ export default function AniListLayout({
   useEffect(() => {
     if (pathname === '/anilist/search') {
       setActiveTab('search');
+    } else if (pathname === '/anilist/compare') {
+      setActiveTab('compare');
     } else {
       setActiveTab('home');
     }
@@ -141,10 +143,12 @@ export default function AniListLayout({
     }
   };
 
-  const handleTabChange = (tab: 'home' | 'search') => {
+  const handleTabChange = (tab: 'home' | 'search' | 'compare') => {
     setActiveTab(tab);
     if (tab === 'search') {
       router.push('/anilist/search');
+    } else if (tab === 'compare') {
+      router.push('/anilist/compare');
     } else {
       router.push('/anilist/home');
     }
@@ -209,7 +213,7 @@ function AniListLayoutContent({
   showThemeSelector: boolean;
   authUser: AuthUser | null;
   accessToken: string | null;
-  onTabChange: (tab: 'home' | 'search') => void;
+  onTabChange: (tab: 'home' | 'search' | 'compare') => void;
   onToggleDarkMode: () => void;
   onColorThemeChange: (theme: ColorTheme) => void;
   onBackgroundImageChange: (imageUrl: string) => void;
@@ -302,6 +306,7 @@ function AniListLayoutContent({
                       src={authUser.avatar.medium} 
                       alt={authUser.name}
                       className={styles.userAvatarSmall}
+                      loading="lazy"
                     />
                   )}
                   <span className={styles.userNameSmall}>{authUser.name}</span>
@@ -454,6 +459,12 @@ function AniListLayoutContent({
             className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`}
           >
             Search
+          </button>
+          <button
+            onClick={() => onTabChange('compare')}
+            className={`${styles.tab} ${activeTab === 'compare' ? styles.tabActive : ''}`}
+          >
+            Compare
           </button>
         </nav>
       </header>

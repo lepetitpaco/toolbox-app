@@ -9,6 +9,9 @@ const STORAGE_KEY = 'anilist_username';
 const THEME_KEY = 'anilist_theme';
 const SAVED_USERS_KEY = 'anilist_saved_users';
 const USER_FILTERS_KEY = 'anilist_user_filters';
+const FILTER_PRESETS_KEY = 'anilist_filter_presets';
+const COMPACT_MODE_KEY = 'anilist_compact_mode';
+const LAST_VISIT_KEY = 'anilist_last_visit';
 
 interface SavedUser {
   username: string;
@@ -27,7 +30,15 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'list' | 'list-anime' | 'list-manga' | 'text' | 'message'>('all');
   const [status, setStatus] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
+  const [customDateStart, setCustomDateStart] = useState<string>('');
+  const [customDateEnd, setCustomDateEnd] = useState<string>('');
+  const [compactMode, setCompactMode] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<'date' | 'likes' | 'replies'>('date');
+  const [filterPresets, setFilterPresets] = useState<Array<{ id: string; name: string; filters: { filter: string; status: string; dateFilter: string; customDateStart: string; customDateEnd: string; sortBy: string } }>>([]);
+  const [showPresetModal, setShowPresetModal] = useState<boolean>(false);
+  const [presetName, setPresetName] = useState<string>('');
+  const [newActivitiesCount, setNewActivitiesCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [expandedComments, setExpandedComments] = useState<{
@@ -66,6 +77,17 @@ export default function HomePage() {
     const token = localStorage.getItem('anilist_access_token');
     if (token) {
       setAccessToken(token);
+    }
+    
+    // Load compact mode preference
+    const savedCompactMode = localStorage.getItem(COMPACT_MODE_KEY);
+    if (savedCompactMode === 'true') {
+      setCompactMode(true);
+    }
+    
+    // Initialize last visit timestamp if not exists
+    if (!localStorage.getItem(LAST_VISIT_KEY)) {
+      localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
     }
   }, []);
 
@@ -120,6 +142,91 @@ export default function HomePage() {
     }
   }, []);
 
+  // Calculate new activities count since last visit
+  const getNewActivitiesCount = useCallback(() => {
+    if (typeof window === 'undefined' || activities.length === 0) return 0;
+    
+    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+    if (!lastVisit) return 0;
+    
+    const lastVisitTimestamp = parseInt(lastVisit, 10);
+    return activities.filter(activity => {
+      if (!activity.createdAt) return false;
+      return activity.createdAt * 1000 > lastVisitTimestamp;
+    }).length;
+  }, [activities]);
+  
+  // Update last visit timestamp when activities are loaded
+  useEffect(() => {
+    if (activities.length > 0 && user) {
+      // Update last visit timestamp after a short delay to allow user to see new activities
+      const timer = setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
+        }
+      }, 5000); // 5 seconds delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activities, user]);
+  
+  // Save filter preset
+  const saveFilterPreset = useCallback(() => {
+    if (!presetName.trim()) {
+      alert('Please enter a name for the preset');
+      return;
+    }
+    
+    const preset = {
+      id: Date.now().toString(),
+      name: presetName.trim(),
+      filters: {
+        filter,
+        status,
+        dateFilter,
+        customDateStart,
+        customDateEnd,
+        sortBy
+      }
+    };
+    
+    const updatedPresets = [...filterPresets, preset];
+    setFilterPresets(updatedPresets);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(FILTER_PRESETS_KEY, JSON.stringify(updatedPresets));
+    }
+    setPresetName('');
+    setShowPresetModal(false);
+  }, [presetName, filter, status, dateFilter, customDateStart, customDateEnd, sortBy, filterPresets]);
+
+  // Load filter preset
+  const loadFilterPreset = useCallback((preset: typeof filterPresets[0]) => {
+    setFilter(preset.filters.filter as any);
+    setStatus(preset.filters.status);
+    setDateFilter(preset.filters.dateFilter as any);
+    setCustomDateStart(preset.filters.customDateStart);
+    setCustomDateEnd(preset.filters.customDateEnd);
+    setSortBy(preset.filters.sortBy as any);
+    
+    // Save to user filters if user is loaded
+    if (user) {
+      saveUserFilters(user.id, {
+        filter: preset.filters.filter,
+        status: preset.filters.status,
+        sortBy: preset.filters.sortBy
+      });
+    }
+  }, [user, saveUserFilters]);
+
+  // Delete filter preset
+  const deleteFilterPreset = useCallback((presetId: string) => {
+    const updatedPresets = filterPresets.filter(p => p.id !== presetId);
+    setFilterPresets(updatedPresets);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(FILTER_PRESETS_KEY, JSON.stringify(updatedPresets));
+    }
+  }, [filterPresets]);
+
   // Save username to localStorage
   const saveUsername = useCallback((newUsername: string) => {
     localStorage.setItem(STORAGE_KEY, newUsername);
@@ -160,7 +267,10 @@ export default function HomePage() {
     pageNum: number = 1, 
     activityType?: 'all' | 'text' | 'list' | 'message',
     mediaTypeFilter?: 'all' | 'anime' | 'manga',
-    statusFilter?: string
+    statusFilter?: string,
+    dateFilterParam?: 'all' | 'today' | 'week' | 'month' | 'custom',
+    customDateStartParam?: string,
+    customDateEndParam?: string
   ) => {
     if (!targetUsername.trim()) {
       setError('Please enter a username');
@@ -232,9 +342,55 @@ export default function HomePage() {
       }
       
       // statusFilter is NOT passed to API - it's filtered client-side in filteredAndSortedActivities
+      // Calculate date filters for API (Unix timestamps in seconds)
+      let createdAtGreater: number | undefined;
+      let createdAtLesser: number | undefined;
+      
+      const activeDateFilter = dateFilterParam || dateFilter;
+      const activeCustomStart = customDateStartParam !== undefined ? customDateStartParam : customDateStart;
+      const activeCustomEnd = customDateEndParam !== undefined ? customDateEndParam : customDateEnd;
+      
+      if (activeDateFilter !== 'all') {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (activeDateFilter === 'today') {
+          createdAtGreater = Math.floor(todayStart.getTime() / 1000);
+        } else if (activeDateFilter === 'week') {
+          const weekStart = new Date(todayStart);
+          weekStart.setDate(weekStart.getDate() - 7);
+          createdAtGreater = Math.floor(weekStart.getTime() / 1000);
+        } else if (activeDateFilter === 'month') {
+          const monthStart = new Date(todayStart);
+          monthStart.setMonth(monthStart.getMonth() - 1);
+          createdAtGreater = Math.floor(monthStart.getTime() / 1000);
+        } else if (activeDateFilter === 'custom') {
+          if (activeCustomStart) {
+            const startDate = new Date(activeCustomStart);
+            startDate.setHours(0, 0, 0, 0);
+            createdAtGreater = Math.floor(startDate.getTime() / 1000);
+          }
+          if (activeCustomEnd) {
+            const endDate = new Date(activeCustomEnd);
+            endDate.setHours(23, 59, 59, 999);
+            createdAtLesser = Math.floor(endDate.getTime() / 1000);
+          }
+        }
+      }
+      
       // Pass access token if available to get isLiked status
       const token = typeof window !== 'undefined' ? localStorage.getItem('anilist_access_token') : null;
-      const activitiesData = await fetchUserActivities(userData.id, pageNum, 50, typeToFetch, mediaTypeToFetch, undefined, token || undefined);
+      const activitiesData = await fetchUserActivities(
+        userData.id, 
+        pageNum, 
+        50, 
+        typeToFetch, 
+        mediaTypeToFetch, 
+        undefined, 
+        token || undefined,
+        createdAtGreater,
+        createdAtLesser
+      );
       if (!activitiesData) {
         setError('Error loading activities. Check the console for more details.');
         setLoading(false);
@@ -270,7 +426,7 @@ export default function HomePage() {
       isRequestInProgressRef.current = false;
       setLoading(false);
     }
-  }, [saveUserToHistory, filter, loadUserFilters]);
+  }, [saveUserToHistory, filter, loadUserFilters, dateFilter, customDateStart, customDateEnd]);
 
   // Load user from saved users list
   const loadSavedUser = useCallback((savedUser: SavedUser) => {
@@ -356,7 +512,8 @@ export default function HomePage() {
           }
           
           // Note: status is filtered client-side, so we don't pass it to API
-          loadUserActivities(username, 1, typeToFetch, mediaTypeToFetch, undefined);
+          // Date filters are now passed to API for server-side filtering
+          loadUserActivities(username, 1, typeToFetch, mediaTypeToFetch, undefined, dateFilter, customDateStart, customDateEnd);
         }
       }, 500);
     }
@@ -397,9 +554,9 @@ export default function HomePage() {
         typeToFetch = filter;
       }
       
-      loadUserActivities(username, 1, typeToFetch, mediaTypeToFetch, undefined);
+          loadUserActivities(username, 1, typeToFetch, mediaTypeToFetch, undefined, dateFilter, customDateStart, customDateEnd);
     }
-  }, [user, username, filter, loadUserActivities]);
+  }, [user, username, filter, dateFilter, customDateStart, customDateEnd, loadUserActivities]);
 
   // Reset filters to default values
   const handleResetFilters = useCallback(() => {
@@ -510,6 +667,8 @@ export default function HomePage() {
           return false;
         }
       }
+      
+      // Date filtering is done server-side via API, no client-side filtering needed
       
       return true;
     })
@@ -743,6 +902,7 @@ export default function HomePage() {
                         src={savedUser.avatar} 
                         alt={savedUser.name}
                         className={styles.savedUserAvatar}
+                        loading="lazy"
                       />
                     )}
                     <span className={styles.savedUserName}>{savedUser.name}</span>
@@ -780,30 +940,30 @@ export default function HomePage() {
               <img 
                 src={user.avatar.medium} 
                 alt={user.name}
+                loading="lazy"
                 className={styles.userAvatar}
               />
             )}
             <span className={styles.userName}>{user.name}</span>
           </div>
-          
           {user.statistics && (
             <div className={styles.userStats}>
               {user.statistics.anime && (
                 <>
                   {user.statistics.anime.count !== undefined && (
-                    <div className={styles.statItem}>
+                    <div className={styles.statCard}>
                       <span className={styles.statLabel}>Anime</span>
                       <span className={styles.statValue}>{user.statistics.anime.count}</span>
                     </div>
                   )}
                   {user.statistics.anime.episodesWatched !== undefined && (
-                    <div className={styles.statItem}>
+                    <div className={styles.statCard}>
                       <span className={styles.statLabel}>Episodes</span>
                       <span className={styles.statValue}>{user.statistics.anime.episodesWatched.toLocaleString()}</span>
                     </div>
                   )}
                   {user.statistics.anime.meanScore !== undefined && (
-                    <div className={styles.statItem}>
+                    <div className={styles.statCard}>
                       <span className={styles.statLabel}>Avg Score</span>
                       <span className={styles.statValue}>{(user.statistics.anime.meanScore / 10).toFixed(1)}</span>
                     </div>
@@ -813,37 +973,21 @@ export default function HomePage() {
               {user.statistics.manga && (
                 <>
                   {user.statistics.manga.count !== undefined && (
-                    <div className={styles.statItem}>
+                    <div className={styles.statCard}>
                       <span className={styles.statLabel}>Manga</span>
                       <span className={styles.statValue}>{user.statistics.manga.count}</span>
                     </div>
                   )}
                   {user.statistics.manga.chaptersRead !== undefined && (
-                    <div className={styles.statItem}>
+                    <div className={styles.statCard}>
                       <span className={styles.statLabel}>Chapters</span>
                       <span className={styles.statValue}>{user.statistics.manga.chaptersRead.toLocaleString()}</span>
                     </div>
                   )}
                   {user.statistics.manga.meanScore !== undefined && (
-                    <div className={styles.statItem}>
+                    <div className={styles.statCard}>
                       <span className={styles.statLabel}>Avg Score</span>
                       <span className={styles.statValue}>{(user.statistics.manga.meanScore / 10).toFixed(1)}</span>
-                    </div>
-                  )}
-                </>
-              )}
-              {(user.statistics.followers !== undefined || user.statistics.following !== undefined) && (
-                <>
-                  {user.statistics.followers !== undefined && (
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>Followers</span>
-                      <span className={styles.statValue}>{user.statistics.followers.toLocaleString()}</span>
-                    </div>
-                  )}
-                  {user.statistics.following !== undefined && (
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>Following</span>
-                      <span className={styles.statValue}>{user.statistics.following.toLocaleString()}</span>
                     </div>
                   )}
                 </>
@@ -853,7 +997,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {activities.length > 0 && (
+      {user && (
         <div className={styles.filters}>
           <div className={styles.filterGroup}>
             <label>Type:</label>
@@ -940,6 +1084,47 @@ export default function HomePage() {
           </div>
 
           <div className={styles.filterGroup}>
+            <label>Date:</label>
+            <select 
+              value={dateFilter} 
+              onChange={(e) => {
+                const newDateFilter = e.target.value as 'all' | 'today' | 'week' | 'month' | 'custom';
+                setDateFilter(newDateFilter);
+              }}
+              className={styles.filterSelect}
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          {dateFilter === 'custom' && (
+            <div className={styles.filterGroup}>
+              <label>Date Range:</label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={customDateStart}
+                  onChange={(e) => setCustomDateStart(e.target.value)}
+                  className={styles.filterSelect}
+                  style={{ flex: 1 }}
+                />
+                <span>to</span>
+                <input
+                  type="date"
+                  value={customDateEnd}
+                  onChange={(e) => setCustomDateEnd(e.target.value)}
+                  className={styles.filterSelect}
+                  style={{ flex: 1 }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className={styles.filterGroup}>
             <label>Sort by:</label>
             <select 
               value={sortBy} 
@@ -963,7 +1148,50 @@ export default function HomePage() {
             </select>
           </div>
 
+          <div className={styles.filterGroup}>
+            <label>View:</label>
+            <button
+              onClick={() => {
+                const newCompactMode = !compactMode;
+                setCompactMode(newCompactMode);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem(COMPACT_MODE_KEY, newCompactMode.toString());
+                }
+              }}
+              className={styles.compactModeToggle}
+              title={compactMode ? "Switch to detailed view" : "Switch to compact view"}
+            >
+              {compactMode ? '📋' : '📄'} {compactMode ? 'Compact' : 'Detailed'}
+            </button>
+          </div>
+
           <div className={styles.filterActions}>
+            <div className={styles.presetGroup}>
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const preset = filterPresets.find(p => p.id === e.target.value);
+                    if (preset) loadFilterPreset(preset);
+                    e.target.value = '';
+                  }
+                }}
+                className={styles.presetSelect}
+                title="Load a saved filter preset"
+              >
+                <option value="">Presets...</option>
+                {filterPresets.map(preset => (
+                  <option key={preset.id} value={preset.id}>{preset.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => setShowPresetModal(true)}
+                className={styles.savePresetButton}
+                title="Save current filters as preset"
+              >
+                💾 Save
+              </button>
+            </div>
             <button 
               onClick={handleRefreshFilters}
               className={styles.refreshFiltersButton}
@@ -981,9 +1209,64 @@ export default function HomePage() {
               ↺ Reset
             </button>
           </div>
+          
+          {showPresetModal && (
+            <div className={styles.presetModal}>
+              <div className={styles.presetModalContent}>
+                <h3>Save Filter Preset</h3>
+                <input
+                  type="text"
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  placeholder="Preset name..."
+                  className={styles.presetNameInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      saveFilterPreset();
+                    } else if (e.key === 'Escape') {
+                      setShowPresetModal(false);
+                      setPresetName('');
+                    }
+                  }}
+                  autoFocus
+                />
+                <div className={styles.presetModalActions}>
+                  <button onClick={saveFilterPreset} className={styles.savePresetButton}>
+                    Save
+                  </button>
+                  <button onClick={() => { setShowPresetModal(false); setPresetName(''); }} className={styles.resetFiltersButton}>
+                    Cancel
+                  </button>
+                </div>
+                {filterPresets.length > 0 && (
+                  <div className={styles.presetList}>
+                    <h4>Saved Presets:</h4>
+                    {filterPresets.map(preset => (
+                      <div key={preset.id} className={styles.presetItem}>
+                        <span>{preset.name}</span>
+                        <div>
+                          <button onClick={() => loadFilterPreset(preset)} className={styles.loadPresetButton}>
+                            Load
+                          </button>
+                          <button onClick={() => deleteFilterPreset(preset.id)} className={styles.deletePresetButton}>
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className={styles.stats}>
-            {filteredAndSortedActivities.length} activity(ies)
+            <span>{filteredAndSortedActivities.length} activity(ies)</span>
+            {getNewActivitiesCount() > 0 && (
+              <span className={styles.newActivitiesBadge} title="New activities since last visit">
+                🆕 {getNewActivitiesCount()} new
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -998,9 +1281,21 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Update last visit when activities are loaded */}
+      {activities.length > 0 && (
+        <div style={{ display: 'none' }}>
+          {(() => {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
+            }
+            return null;
+          })()}
+        </div>
+      )}
+
       <div className={styles.activitiesList}>
           {filteredAndSortedActivities.map((activity) => (
-            <div key={activity.id} className={styles.activityCard}>
+            <div key={activity.id} className={`${styles.activityCard} ${compactMode ? styles.compactMode : ''}`}>
               <div className={styles.activityHeader}>
                 <div className={styles.activityUser}>
                   {activity.user?.avatar?.medium && (
@@ -1008,6 +1303,7 @@ export default function HomePage() {
                       src={activity.user.avatar.medium} 
                       alt={activity.user.name}
                       className={styles.activityAvatar}
+                      loading="lazy"
                     />
                   )}
                   <div>
@@ -1074,6 +1370,7 @@ export default function HomePage() {
                       src={activity.media.coverImage.medium} 
                       alt={activity.media.title?.romaji || 'Media'}
                       className={styles.mediaCover}
+                      loading="lazy"
                     />
                   )}
                   <div className={styles.mediaDetails}>
@@ -1131,6 +1428,7 @@ export default function HomePage() {
                                 src={reply.user.avatar.medium} 
                                 alt={reply.user.name}
                                 className={styles.commentAvatar}
+                                loading="lazy"
                               />
                             )}
                             <div className={styles.commentUserInfo}>

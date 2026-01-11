@@ -492,6 +492,7 @@ function SearchContent() {
                         src={media.coverImage.medium} 
                         alt={media.title.userPreferred || ''}
                         className={styles.suggestionImage}
+                        loading="lazy"
                       />
                     )}
                     <div className={styles.suggestionInfo}>
@@ -542,6 +543,7 @@ function SearchContent() {
                   <img 
                     src={selectedMedia.coverImage.large} 
                     alt={selectedMedia.title.userPreferred || ''}
+                    loading="lazy"
                     className={styles.coverImage}
                   />
                 )}
@@ -677,6 +679,7 @@ function SearchContent() {
                                     src={score.userAvatar} 
                                     alt={score.userName}
                                     className={styles.scoreAvatar}
+                                    loading="lazy"
                                   />
                                 )}
                                 {/* User info and score details */}
@@ -737,6 +740,7 @@ function SearchContent() {
                                               src={activity.media.coverImage.medium} 
                                               alt={activity.media.title?.romaji || ''}
                                               className={styles.activityMediaImage}
+                                              loading="lazy"
                                             />
                                           )}
                                           <a 

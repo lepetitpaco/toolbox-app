@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 const ANILIST_API_URL = 'https://graphql.anilist.co';
 
 const GET_USER_ACTIVITIES = `
-  query GetUserActivities($userId: Int!, $page: Int, $perPage: Int, $type: ActivityType) {
+  query GetUserActivities($userId: Int!, $page: Int, $perPage: Int, $type: ActivityType, $createdAt_greater: Int, $createdAt_lesser: Int) {
     Page(page: $page, perPage: $perPage) {
       pageInfo {
         currentPage
         hasNextPage
       }
-      activities(userId: $userId, sort: ID_DESC, type: $type) {
+      activities(userId: $userId, sort: ID_DESC, type: $type, createdAt_greater: $createdAt_greater, createdAt_lesser: $createdAt_lesser) {
         ... on TextActivity {
           id
           userId
@@ -81,6 +81,8 @@ export async function GET(request: NextRequest) {
   const perPage = searchParams.get('perPage') || '50';
   const activityType = searchParams.get('type'); // 'text', 'list', 'message', 'anime', 'manga', or null for all
   const mediaType = searchParams.get('mediaType'); // 'anime', 'manga', or null
+  const createdAtGreater = searchParams.get('createdAt_greater'); // Unix timestamp (seconds)
+  const createdAtLesser = searchParams.get('createdAt_lesser'); // Unix timestamp (seconds)
   const authHeader = request.headers.get('authorization');
 
   if (!userId) {
@@ -121,6 +123,14 @@ export async function GET(request: NextRequest) {
     // Only add type if specified (ANIME_LIST, MANGA_LIST, TEXT, or MESSAGE)
     if (graphQLType) {
       variables.type = graphQLType;
+    }
+    
+    // Add date filters if specified (Unix timestamps in seconds)
+    if (createdAtGreater) {
+      variables.createdAt_greater = parseInt(createdAtGreater, 10);
+    }
+    if (createdAtLesser) {
+      variables.createdAt_lesser = parseInt(createdAtLesser, 10);
     }
 
     const requestBody = {
