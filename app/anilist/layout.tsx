@@ -191,18 +191,20 @@ function AniListLayoutContent({
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>AniList</h1>
+          <h1 className={styles.title}>AniList Tools</h1>
           <div className={styles.headerActions}>
             {authUser ? (
-              <div className={styles.userInfo}>
-                {authUser.avatar?.medium && (
-                  <img 
-                    src={authUser.avatar.medium} 
-                    alt={authUser.name}
-                    className={styles.userAvatarSmall}
-                  />
-                )}
-                <span className={styles.userNameSmall}>{authUser.name}</span>
+              <>
+                <div className={styles.userInfo}>
+                  {authUser.avatar?.medium && (
+                    <img 
+                      src={authUser.avatar.medium} 
+                      alt={authUser.name}
+                      className={styles.userAvatarSmall}
+                    />
+                  )}
+                  <span className={styles.userNameSmall}>{authUser.name}</span>
+                </div>
                 <button 
                   onClick={onLogout}
                   className={styles.logoutButton}
@@ -210,13 +212,13 @@ function AniListLayoutContent({
                 >
                   Logout
                 </button>
-              </div>
+              </>
             ) : (
               <button 
                 onClick={onLogin}
                 className={styles.loginButton}
               >
-                Login with AniList
+                Login
               </button>
             )}
             <button 

@@ -24,25 +24,34 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  gap: 1rem;
 }
 
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  height: 44px;
 }
 
 .loginButton {
-  padding: 0.75rem 1.5rem;
+  padding: 0 1.25rem;
+  height: 44px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.95rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .loginButton:hover {
@@ -51,15 +60,20 @@
 }
 
 .logoutButton {
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
+  height: 44px;
   background: rgba(255, 87, 87, 0.1);
   color: #ff5757;
   border: 1px solid rgba(255, 87, 87, 0.3);
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logoutButton:hover {
@@ -70,11 +84,14 @@
 .userInfo {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
+  height: 44px;
   background: rgba(102, 126, 234, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(102, 126, 234, 0.2);
+  box-sizing: border-box;
 }
 
 .userAvatarSmall {
@@ -83,12 +100,20 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(102, 126, 234, 0.3);
+  flex-shrink: 0;
+  display: block;
 }
 
 .userNameSmall {
   font-weight: 600;
   color: #000000;
   font-size: 0.9rem;
+  white-space: nowrap;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
 .navTabs {
@@ -137,18 +162,19 @@
 }
 
 .themeToggle {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid #667eea;
   background: white;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  flex-shrink: 0;
 }
 
 .themeToggle:hover {
@@ -316,16 +342,17 @@
   transform: scale(0.95);
 }
 
-.userInfo {
+/* User info in activities/home page (large format) */
+.userInfoPage {
   display: flex;
   align-items: center;
   gap: 1rem;
   justify-content: center;
-  padding: 1rem;
+  padding: 2rem 1rem;
+  margin-bottom: 2rem;
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(6px);
   border-radius: 12px;
-  margin-bottom: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -1058,7 +1085,14 @@
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Dark mode styles for header userInfo (small) */
 :global(.dark-mode) .userInfo {
+  background: rgba(139, 154, 255, 0.15);
+  border-color: rgba(139, 154, 255, 0.3);
+}
+
+/* Dark mode styles for page userInfoPage (large) */
+:global(.dark-mode) .userInfoPage {
   background: rgba(20, 20, 20, 0.85);
   border-color: rgba(139, 154, 255, 0.4);
   backdrop-filter: blur(10px);
@@ -1068,6 +1102,7 @@
 :global(.dark-mode) .title {
   background: linear-gradient(135deg, #8b9aff 0%, #a78bfa 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -1180,23 +1215,12 @@
   background: linear-gradient(135deg, #8b9aff 0%, #a78bfa 100%);
 }
 
-:global(.dark-mode) .userInfo {
-  background: rgba(20, 20, 20, 0.85);
-  border-color: rgba(139, 154, 255, 0.4);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
 :global(.dark-mode) .userName {
   color: #ffffff;
   background: none;
   -webkit-background-clip: unset;
+  background-clip: unset;
   -webkit-text-fill-color: unset;
-}
-
-:global(.dark-mode) .userInfo {
-  background: rgba(139, 154, 255, 0.15);
-  border-color: rgba(139, 154, 255, 0.3);
 }
 
 :global(.dark-mode) .userNameSmall {

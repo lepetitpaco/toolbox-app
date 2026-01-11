@@ -459,7 +459,7 @@ export default function HomePage() {
       )}
 
       {user && (
-        <div className={styles.userInfo}>
+        <div className={styles.userInfoPage}>
           {user.avatar?.medium && (
             <img 
               src={user.avatar.medium} 
