@@ -17,7 +17,7 @@ interface SavedUser {
   lastSearched: number; // timestamp
 }
 
-export default function ActivitiesPage() {
+export default function HomePage() {
   const router = useRouter();
   const [username, setUsername] = useState<string>('');
   const [user, setUser] = useState<AniListUser | null>(null);

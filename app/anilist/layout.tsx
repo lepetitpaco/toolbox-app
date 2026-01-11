@@ -22,7 +22,7 @@ export default function AniListLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [activeTab, setActiveTab] = useState<'activities' | 'media-search'>('activities');
+  const [activeTab, setActiveTab] = useState<'home' | 'search'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -55,10 +55,10 @@ export default function AniListLayout({
 
   // Sync active tab with URL
   useEffect(() => {
-    if (pathname === '/anilist/media-search') {
-      setActiveTab('media-search');
+    if (pathname === '/anilist/search') {
+      setActiveTab('search');
     } else {
-      setActiveTab('activities');
+      setActiveTab('home');
     }
   }, [pathname]);
 
@@ -75,12 +75,12 @@ export default function AniListLayout({
     }
   };
 
-  const handleTabChange = (tab: 'activities' | 'media-search') => {
+  const handleTabChange = (tab: 'home' | 'search') => {
     setActiveTab(tab);
-    if (tab === 'media-search') {
-      router.push('/anilist/media-search');
+    if (tab === 'search') {
+      router.push('/anilist/search');
     } else {
-      router.push('/anilist');
+      router.push('/anilist/home');
     }
   };
 
@@ -124,11 +124,11 @@ function AniListLayoutContent({
   onLogout,
   children,
 }: {
-  activeTab: 'activities' | 'media-search';
+  activeTab: 'home' | 'search';
   isDarkMode: boolean;
   authUser: AuthUser | null;
   accessToken: string | null;
-  onTabChange: (tab: 'activities' | 'media-search') => void;
+  onTabChange: (tab: 'home' | 'search') => void;
   onToggleDarkMode: () => void;
   onLogin: () => void;
   onLogout: () => void;
@@ -181,7 +181,7 @@ function AniListLayoutContent({
           .catch(err => console.error('Error fetching user info:', err));
         
         // Clean URL
-        router.replace('/anilist');
+        router.replace('/anilist/home');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,16 +231,16 @@ function AniListLayoutContent({
 
         <nav className={styles.navTabs}>
           <button
-            onClick={() => onTabChange('activities')}
-            className={`${styles.tab} ${activeTab === 'activities' ? styles.tabActive : ''}`}
+            onClick={() => onTabChange('home')}
+            className={`${styles.tab} ${activeTab === 'home' ? styles.tabActive : ''}`}
           >
-            Activities
+            Home
           </button>
           <button
-            onClick={() => onTabChange('media-search')}
-            className={`${styles.tab} ${activeTab === 'media-search' ? styles.tabActive : ''}`}
+            onClick={() => onTabChange('search')}
+            className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`}
           >
-            Media Search
+            Search
           </button>
         </nav>
       </header>

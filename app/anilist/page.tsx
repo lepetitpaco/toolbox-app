@@ -1,7 +1,14 @@
 'use client';
 
-import ActivitiesPage from './activities/page';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AniListPage() {
-  return <ActivitiesPage />;
+  const router = useRouter();
+  
+  useEffect(() => {
+    router.replace('/anilist/home');
+  }, [router]);
+  
+  return null;
 }

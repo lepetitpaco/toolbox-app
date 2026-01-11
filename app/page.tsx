@@ -20,7 +20,7 @@ const tools: Tool[] = [
   {
     title: "AniList - Recherche Anime/Manga",
     description: "Recherchez des animes et mangas avec auto-complétion. Affiche les informations de base.",
-    path: "/anilist/media-search",
+    path: "/anilist/search",
     icon: "🔍",
     color: "#ff5757",
   },

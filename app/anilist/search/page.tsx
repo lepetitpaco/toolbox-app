@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { searchMedia, fetchMediaById, Media, getFollowedUsersScores, UserMediaScore } from '@/lib/anilist';
-import styles from './media-search.module.css';
+import styles from './search.module.css';
 
 const AUTH_TOKEN_KEY = 'anilist_access_token';
 
-function MediaSearchContent() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState<string>('');
   const [mediaType, setMediaType] = useState<'ALL' | 'ANIME' | 'MANGA'>('ALL');
@@ -529,10 +529,10 @@ function MediaSearchContent() {
   );
 }
 
-export default function MediaSearchPage() {
+export default function SearchPage() {
   return (
     <Suspense fallback={<div className={styles.loading}>Loading...</div>}>
-      <MediaSearchContent />
+      <SearchContent />
     </Suspense>
   );
 }
