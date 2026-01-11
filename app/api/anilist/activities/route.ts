@@ -16,6 +16,7 @@ const GET_USER_ACTIVITIES = `
           type
           replyCount
           likeCount
+          isLiked
           createdAt
           text(asHtml: true)
           user {
@@ -35,6 +36,7 @@ const GET_USER_ACTIVITIES = `
           progress
           replyCount
           likeCount
+          isLiked
           createdAt
           user {
             id
@@ -63,6 +65,7 @@ const GET_USER_ACTIVITIES = `
           type
           replyCount
           likeCount
+          isLiked
           createdAt
           message
         }

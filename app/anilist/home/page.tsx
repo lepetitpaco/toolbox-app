@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchUserId, fetchUserActivities, fetchActivityReplies, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
+import { fetchUserId, fetchUserActivities, fetchActivityReplies, toggleActivityLike, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
 import styles from '../anilist.module.css';
 
 const STORAGE_KEY = 'anilist_username';
@@ -34,6 +34,8 @@ export default function HomePage() {
     [key: number]: { replies: ActivityComment[], loading: boolean }
   }>({});
   const [savedUsers, setSavedUsers] = useState<SavedUser[]>([]);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [likingActivityId, setLikingActivityId] = useState<number | null>(null);
 
   // Load saved username, theme, and saved users from localStorage
   useEffect(() => {
@@ -51,6 +53,12 @@ export default function HomePage() {
       } catch (e) {
         console.error('Error parsing saved users:', e);
       }
+    }
+
+    // Load access token for like functionality
+    const token = localStorage.getItem('anilist_access_token');
+    if (token) {
+      setAccessToken(token);
     }
   }, []);
 
@@ -351,6 +359,44 @@ export default function HomePage() {
         return status;
     }
   };
+
+  const handleLike = useCallback(async (activityId: number) => {
+    if (!accessToken) {
+      alert('Please log in to like activities');
+      return;
+    }
+
+    if (likingActivityId === activityId) {
+      return; // Prevent double-click
+    }
+
+    setLikingActivityId(activityId);
+    try {
+      // Find the activity to get its type
+      const activity = activities.find(a => a.id === activityId);
+      const result = await toggleActivityLike(accessToken, activityId, activity?.type);
+      if (result) {
+        // Update the activity in the list
+        setActivities(prev => prev.map(activity => 
+          activity.id === activityId 
+            ? { ...activity, isLiked: result.isLiked, likeCount: result.likeCount }
+            : activity
+        ));
+      }
+    } catch (error: any) {
+      console.error('Error toggling like:', error);
+      if (error.message?.includes('UNAUTHORIZED')) {
+        alert('Your session has expired. Please log in again.');
+        localStorage.removeItem('anilist_access_token');
+        localStorage.removeItem('anilist_user');
+        setAccessToken(null);
+      } else {
+        alert('Failed to like activity. Please try again.');
+      }
+    } finally {
+      setLikingActivityId(null);
+    }
+  }, [accessToken, likingActivityId]);
 
   const loadComments = useCallback(async (activityId: number) => {
     if (expandedComments[activityId]?.replies && expandedComments[activityId].replies.length > 0) {
@@ -692,12 +738,33 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className={styles.activityStats}>
-                  {activity.likeCount !== undefined && activity.likeCount > 0 && (
-                    <span className={styles.stat}>❤️ {activity.likeCount}</span>
-                  )}
-                  {activity.replyCount !== undefined && activity.replyCount > 0 && (
-                    <span className={styles.stat}>💬 {activity.replyCount}</span>
-                  )}
+                  <div className={styles.statGroup}>
+                    {accessToken && (
+                      <button
+                        onClick={() => handleLike(activity.id)}
+                        disabled={likingActivityId === activity.id}
+                        className={`${styles.likeButton} ${activity.isLiked ? styles.liked : ''}`}
+                        title={activity.isLiked ? 'Unlike' : 'Like'}
+                      >
+                        {activity.isLiked ? '❤️' : '🤍'} {activity.likeCount || 0}
+                      </button>
+                    )}
+                    {!accessToken && activity.likeCount !== undefined && activity.likeCount > 0 && (
+                      <span className={styles.stat}>❤️ {activity.likeCount}</span>
+                    )}
+                    {activity.replyCount !== undefined && activity.replyCount > 0 && (
+                      <span className={styles.stat}>💬 {activity.replyCount}</span>
+                    )}
+                  </div>
+                  <a
+                    href={`https://anilist.co/activity/${activity.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.viewOnAnilist}
+                    title="View on AniList"
+                  >
+                    🔗
+                  </a>
                 </div>
               </div>
 

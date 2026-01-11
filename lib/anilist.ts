@@ -52,6 +52,7 @@ export interface ActivityStatus {
   message?: string;
   replyCount?: number;
   likeCount?: number;
+  isLiked?: boolean;
   createdAt: number;
   media?: {
     id: number;
@@ -139,6 +140,7 @@ const GET_USER_ACTIVITIES = `
           type
           replyCount
           likeCount
+          isLiked
           createdAt
           text(asHtml: true)
           user {
@@ -158,6 +160,7 @@ const GET_USER_ACTIVITIES = `
           progress
           replyCount
           likeCount
+          isLiked
           createdAt
           user {
             id
@@ -186,6 +189,7 @@ const GET_USER_ACTIVITIES = `
           type
           replyCount
           likeCount
+          isLiked
           createdAt
           message
         }
@@ -633,6 +637,58 @@ export async function getFollowedUsersScores(
     return data.scores || [];
   } catch (error) {
     console.error('[getFollowedUsersScores] Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Toggle like status for an activity.
+ * 
+ * @param accessToken - AniList OAuth access token
+ * @param activityId - The ID of the activity to like/unlike
+ * @param activityType - The type of the activity (TEXT, LIST, MESSAGE, etc.)
+ * @returns Object with updated like status and count, or null on error
+ * @throws Error if the request fails or token is invalid
+ */
+export async function toggleActivityLike(
+  accessToken: string,
+  activityId: number,
+  activityType?: string
+): Promise<{ id: number; isLiked: boolean; likeCount: number } | null> {
+  try {
+    const response = await fetch('/api/anilist/activity-like', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ activityId, activityType }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        throw new Error('UNAUTHORIZED: Invalid or expired token');
+      }
+      
+      // Build a descriptive error message
+      let errorMessage = `HTTP Error: ${response.status}`;
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.details) {
+        errorMessage = `${errorMessage} - ${JSON.stringify(errorData.details)}`;
+      } else if (Object.keys(errorData).length > 0) {
+        errorMessage = `${errorMessage} - ${JSON.stringify(errorData)}`;
+      }
+      
+      console.error('[toggleActivityLike] Error response:', errorData);
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error toggling activity like:', error);
     throw error;
   }
 }
