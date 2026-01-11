@@ -8,6 +8,7 @@ import styles from '../anilist.module.css';
 const STORAGE_KEY = 'anilist_username';
 const THEME_KEY = 'anilist_theme';
 const SAVED_USERS_KEY = 'anilist_saved_users';
+const USER_FILTERS_KEY = 'anilist_user_filters';
 
 interface SavedUser {
   username: string;
@@ -60,6 +61,41 @@ export default function HomePage() {
     const token = localStorage.getItem('anilist_access_token');
     if (token) {
       setAccessToken(token);
+    }
+  }, []);
+
+  // Save filters for current user
+  const saveUserFilters = useCallback((userId: number, filters: { filter: string; mediaType: string; status: string; sortBy: string }) => {
+    if (typeof window === 'undefined') return;
+    
+    const savedFilters = localStorage.getItem(USER_FILTERS_KEY);
+    let allFilters: Record<number, typeof filters> = {};
+    
+    if (savedFilters) {
+      try {
+        allFilters = JSON.parse(savedFilters);
+      } catch (e) {
+        console.error('Error parsing saved filters:', e);
+      }
+    }
+    
+    allFilters[userId] = filters;
+    localStorage.setItem(USER_FILTERS_KEY, JSON.stringify(allFilters));
+  }, []);
+
+  // Load filters for current user
+  const loadUserFilters = useCallback((userId: number) => {
+    if (typeof window === 'undefined') return null;
+    
+    const savedFilters = localStorage.getItem(USER_FILTERS_KEY);
+    if (!savedFilters) return null;
+    
+    try {
+      const allFilters: Record<number, { filter: string; mediaType: string; status: string; sortBy: string }> = JSON.parse(savedFilters);
+      return allFilters[userId] || null;
+    } catch (e) {
+      console.error('Error parsing saved filters:', e);
+      return null;
     }
   }, []);
 
@@ -130,6 +166,15 @@ export default function HomePage() {
       // Save user to history on successful search
       saveUserToHistory(userData, targetUsername);
 
+      // Load saved filters for this user
+      const savedFilters = loadUserFilters(userData.id);
+      if (savedFilters) {
+        setFilter(savedFilters.filter as any);
+        setMediaType(savedFilters.mediaType as any);
+        setStatus(savedFilters.status);
+        setSortBy(savedFilters.sortBy as any);
+      }
+
       // Step 2: Fetch activities with filters
       const typeToFetch = activityType || filter;
       const mediaTypeToFetch = mediaTypeFilter || mediaType;
@@ -177,8 +222,18 @@ export default function HomePage() {
   const loadSavedUser = useCallback((savedUser: SavedUser) => {
     setUsername(savedUser.username);
     saveUsername(savedUser.username);
+    
+    // Load saved filters for this user
+    const savedFilters = loadUserFilters(savedUser.id);
+    if (savedFilters) {
+      setFilter(savedFilters.filter as any);
+      setMediaType(savedFilters.mediaType as any);
+      setStatus(savedFilters.status);
+      setSortBy(savedFilters.sortBy as any);
+    }
+    
     loadUserActivities(savedUser.username, 1);
-  }, [loadUserActivities, saveUsername]);
+  }, [loadUserActivities, saveUsername, loadUserFilters]);
 
   // Handle search
   const handleSearch = useCallback(() => {
@@ -654,6 +709,15 @@ export default function HomePage() {
                   setMediaType('all');
                   setStatus('all');
                 }
+                // Save filters when they change
+                if (user) {
+                  saveUserFilters(user.id, {
+                    filter: newFilter,
+                    mediaType: newFilter !== 'list' ? 'all' : mediaType,
+                    status: newFilter !== 'list' ? 'all' : status,
+                    sortBy
+                  });
+                }
               }}
               className={styles.filterSelect}
             >
@@ -671,6 +735,15 @@ export default function HomePage() {
               onChange={(e) => {
                 const newMediaType = e.target.value as 'all' | 'anime' | 'manga';
                 setMediaType(newMediaType);
+                // Save filters when they change
+                if (user) {
+                  saveUserFilters(user.id, {
+                    filter,
+                    mediaType: newMediaType,
+                    status,
+                    sortBy
+                  });
+                }
               }}
               className={styles.filterSelect}
               disabled={filter !== 'list'}
@@ -691,6 +764,15 @@ export default function HomePage() {
               value={status} 
               onChange={(e) => {
                 setStatus(e.target.value);
+                // Save filters when they change
+                if (user) {
+                  saveUserFilters(user.id, {
+                    filter,
+                    mediaType,
+                    status: e.target.value,
+                    sortBy
+                  });
+                }
               }}
               className={styles.filterSelect}
               disabled={filter !== 'list'}
@@ -735,7 +817,19 @@ export default function HomePage() {
             <label>Sort by:</label>
             <select 
               value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => {
+                const newSortBy = e.target.value as any;
+                setSortBy(newSortBy);
+                // Save filters when they change
+                if (user) {
+                  saveUserFilters(user.id, {
+                    filter,
+                    mediaType,
+                    status,
+                    sortBy: newSortBy
+                  });
+                }
+              }}
               className={styles.filterSelect}
             >
               <option value="date">Date</option>

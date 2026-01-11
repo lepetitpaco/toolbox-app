@@ -1,6 +1,53 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Color theme variables - Default Purple */
+  --primary-color: #667eea;
+  --primary-color-dark: #764ba2;
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --primary-gradient-overlay: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+  --background-image: url('https://images.unsplash.com/photo-1590796583326-afd3bb20d22d?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+}
+
+/* Magical Blue Theme */
+[data-color-theme="magical-blue"] {
+  --primary-color: #4A90E2;
+  --primary-color-dark: #5BA3F5;
+  --primary-gradient: linear-gradient(135deg, #4A90E2 0%, #5BA3F5 100%);
+  --primary-gradient-overlay: linear-gradient(135deg, rgba(74, 144, 226, 0.85) 0%, rgba(91, 163, 245, 0.85) 100%);
+}
+
+/* Forest Green Theme */
+[data-color-theme="forest-green"] {
+  --primary-color: #4ECDC4;
+  --primary-color-dark: #44A08D;
+  --primary-gradient: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+  --primary-gradient-overlay: linear-gradient(135deg, rgba(78, 205, 196, 0.85) 0%, rgba(68, 160, 141, 0.85) 100%);
+}
+
+/* Twilight Purple Theme */
+[data-color-theme="twilight-purple"] {
+  --primary-color: #6B5B95;
+  --primary-color-dark: #8B7BAE;
+  --primary-gradient: linear-gradient(135deg, #6B5B95 0%, #8B7BAE 100%);
+  --primary-gradient-overlay: linear-gradient(135deg, rgba(107, 91, 149, 0.85) 0%, rgba(139, 123, 174, 0.85) 100%);
+}
+
+/* Ice Blue Theme */
+[data-color-theme="ice-blue"] {
+  --primary-color: #74B9FF;
+  --primary-color-dark: #0984E3;
+  --primary-gradient: linear-gradient(135deg, #74B9FF 0%, #0984E3 100%);
+  --primary-gradient-overlay: linear-gradient(135deg, rgba(116, 185, 255, 0.85) 0%, rgba(9, 132, 227, 0.85) 100%);
+}
+
+/* Sunset Orange Theme */
+[data-color-theme="sunset-orange"] {
+  --primary-color: #FF6B6B;
+  --primary-color-dark: #FF8E53;
+  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  --primary-gradient-overlay: linear-gradient(135deg, rgba(255, 107, 107, 0.85) 0%, rgba(255, 142, 83, 0.85) 100%);
 }
 
 @media (prefers-color-scheme: dark) {

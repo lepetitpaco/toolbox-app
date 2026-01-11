@@ -1,8 +1,8 @@
 .container {
   min-height: 100vh;
   background: 
-    linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%),
-    url('https://images.unsplash.com/photo-1590796583326-afd3bb20d22d?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover no-repeat;
+    var(--primary-gradient-overlay),
+    var(--background-image) center/cover no-repeat;
   background-attachment: fixed;
   padding: 2rem;
   position: relative;
@@ -17,6 +17,8 @@
   padding: 2.5rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 1;
 }
 
 .headerTop {
@@ -39,7 +41,7 @@
 .loginButton {
   padding: 0 1.25rem;
   height: 44px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-gradient);
   color: white;
   border: none;
   border-radius: 10px;
@@ -47,7 +49,7 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -138,14 +140,14 @@
 }
 
 .tab:hover {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 5%, transparent);
 }
 
 .tabActive {
-  color: #667eea;
-  border-bottom-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 5%, transparent);
 }
 
 .title {
@@ -159,6 +161,189 @@
   letter-spacing: -0.5px;
   margin: 0;
   flex: 1;
+}
+
+.themeControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 10000;
+}
+
+.themeSelectorButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #667eea;
+  background: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  flex-shrink: 0;
+}
+
+.themeSelectorButton:hover {
+  transform: scale(1.1) rotate(-15deg);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+}
+
+.themeSelectorDropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0.75rem;
+  min-width: 200px;
+  z-index: 9999;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.themeSelectorTitle {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #000;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.themeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #000;
+}
+
+.themeOption:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.themeOptionActive {
+  background: rgba(102, 126, 234, 0.1);
+  font-weight: 600;
+}
+
+.themeOptionColor {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.themeSelectorDivider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0.75rem 0;
+}
+
+.backgroundImageInput {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.backgroundImageUrlInput {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.backgroundImageUrlInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+.clearImageButton {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 87, 87, 0.1);
+  color: #ff5757;
+  border: 1px solid rgba(255, 87, 87, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.clearImageButton:hover {
+  background: rgba(255, 87, 87, 0.2);
+  border-color: rgba(255, 87, 87, 0.5);
+}
+
+.presetImages {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.presetImagesLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.presetImageButton {
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.presetImageButton:hover {
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  border-color: var(--primary-color);
+}
+
+.imageUrlHint {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #856404;
+  line-height: 1.4;
 }
 
 .themeToggle {
@@ -988,6 +1173,12 @@
   font-weight: 600;
 }
 
+.commentStats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .commentLikes {
   font-size: 0.9rem;
   color: #000000;
@@ -998,6 +1189,37 @@
   padding: 0.4rem 0.8rem;
   background: rgba(102, 126, 234, 0.1);
   border-radius: 20px;
+}
+
+.commentLikeButton {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #000000;
+  padding: 0.35rem 0.75rem;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.commentLikeButton:hover:not(:disabled) {
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.05);
+}
+
+.commentLikeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.commentLikeButton.liked {
+  background: rgba(255, 87, 87, 0.15);
+  border-color: rgba(255, 87, 87, 0.3);
+  color: #ff5757;
 }
 
 .commentText {
@@ -1455,6 +1677,83 @@
   color: #a78bfa;
 }
 
+/* Dark mode styles for theme selector */
+:global(.dark-mode) .themeSelectorDropdown {
+  background: rgba(26, 26, 26, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .themeSelectorTitle {
+  color: #ffffff;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .themeOption {
+  color: #ededed;
+}
+
+:global(.dark-mode) .themeOption:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .themeOptionActive {
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+:global(.dark-mode) .themeSelectorButton {
+  border-color: var(--primary-color);
+  background: rgba(26, 26, 26, 0.8);
+}
+
+:global(.dark-mode) .themeSelectorButton:hover {
+  background: var(--primary-gradient);
+}
+
+:global(.dark-mode) .themeToggle {
+  border-color: var(--primary-color);
+  background: rgba(26, 26, 26, 0.8);
+}
+
+:global(.dark-mode) .themeToggle:hover {
+  background: var(--primary-gradient);
+}
+
+:global(.dark-mode) .themeSelectorDivider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .backgroundImageUrlInput {
+  background: rgba(40, 40, 40, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ededed;
+}
+
+:global(.dark-mode) .backgroundImageUrlInput:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+:global(.dark-mode) .presetImagesLabel {
+  color: #d0d0d0;
+}
+
+:global(.dark-mode) .presetImageButton {
+  background: rgba(40, 40, 40, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ededed;
+}
+
+:global(.dark-mode) .presetImageButton:hover {
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  border-color: var(--primary-color);
+}
+
+:global(.dark-mode) .imageUrlHint {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.4);
+  color: #fbbf24;
+}
+
 :global(.dark-mode) .commentText :global(code) {
   background: rgba(139, 154, 255, 0.2);
 }
@@ -1494,6 +1793,22 @@
 :global(.dark-mode) .commentLikes {
   background: rgba(139, 154, 255, 0.2);
   color: #ededed;
+}
+
+:global(.dark-mode) .commentLikeButton {
+  background: rgba(139, 154, 255, 0.15);
+  border-color: rgba(139, 154, 255, 0.3);
+  color: #ededed;
+}
+
+:global(.dark-mode) .commentLikeButton:hover:not(:disabled) {
+  background: rgba(139, 154, 255, 0.25);
+}
+
+:global(.dark-mode) .commentLikeButton.liked {
+  background: rgba(255, 87, 87, 0.2);
+  border-color: rgba(255, 87, 87, 0.4);
+  color: #ff5757;
 }
 
 :global(.dark-mode) .loadMoreButton {
