@@ -1,11 +1,31 @@
 .container {
   min-height: 100vh;
-  background: 
-    var(--primary-gradient-overlay),
-    var(--background-image) center/cover no-repeat;
+  background: var(--primary-gradient-overlay);
   background-attachment: fixed;
   padding: 2rem;
   position: relative;
+  overflow-x: hidden;
+}
+
+.container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: var(--background-image);
+  background-position: var(--background-image-position, center);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  transform: scale(calc(var(--background-image-zoom, 100) / 100));
+  transform-origin: var(--background-image-position, center);
+  z-index: -1;
+  will-change: transform;
+  /* Ensure the image always covers the entire viewport */
+  min-width: 100%;
+  min-height: 100%;
 }
 
 .header {
@@ -18,7 +38,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
-  z-index: 1;
+  z-index: 100;
 }
 
 .headerTop {
@@ -168,7 +188,7 @@
   align-items: center;
   gap: 0.5rem;
   position: relative;
-  z-index: 10000;
+  z-index: 99999;
 }
 
 .themeSelectorButton {
@@ -204,7 +224,7 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   min-width: 200px;
-  z-index: 9999;
+  z-index: 99999;
   animation: slideDown 0.2s ease;
 }
 
@@ -344,6 +364,120 @@
   font-size: 0.75rem;
   color: #856404;
   line-height: 1.4;
+}
+
+/* Image Position Controls */
+.imagePositionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.imagePositionButton {
+  aspect-ratio: 1;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.imagePositionButton:hover {
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  border-color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.imagePositionButtonActive {
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+
+/* Image Zoom Controls */
+.imageZoomContainer {
+  margin-top: 0.5rem;
+}
+
+.imageZoomSlider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.imageZoomSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.imageZoomSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.imageZoomSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.imageZoomSlider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.imageZoomLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: #666;
+}
+
+/* Dark mode styles for image controls */
+:global(.dark-mode) .imagePositionButton {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .imagePositionButton:hover {
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  border-color: var(--primary-color);
+}
+
+:global(.dark-mode) .imagePositionButtonActive {
+  background: color-mix(in srgb, var(--primary-color) 30%, transparent);
+  border-color: var(--primary-color);
+}
+
+:global(.dark-mode) .imageZoomSlider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .imageZoomLabels {
+  color: #ccc;
 }
 
 .themeToggle {
@@ -2831,6 +2965,183 @@
 :global(.dark-mode) .apiRequestCounter {
   background: rgba(102, 126, 234, 0.9);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Toast Container */
+.toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  pointer-events: auto;
+  cursor: pointer;
+  animation: toastSlideIn 0.3s ease-out;
+  transition: all 0.3s ease;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.toast:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.toastIcon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.toastMessage {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #333;
+  word-wrap: break-word;
+}
+
+.toastClose {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.toastClose:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+/* Toast Types */
+.toastSuccess {
+  border-left: 4px solid #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.toastSuccess .toastMessage {
+  color: #065f46;
+}
+
+.toastError {
+  border-left: 4px solid #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.toastError .toastMessage {
+  color: #991b1b;
+}
+
+.toastWarning {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.toastWarning .toastMessage {
+  color: #92400e;
+}
+
+.toastInfo {
+  border-left: 4px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.toastInfo .toastMessage {
+  color: #1e40af;
+}
+
+/* Dark mode styles */
+:global(.dark-mode) .toast {
+  background: rgba(30, 30, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .toastSuccess {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+:global(.dark-mode) .toastSuccess .toastMessage {
+  color: #6ee7b7;
+}
+
+:global(.dark-mode) .toastError {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+:global(.dark-mode) .toastError .toastMessage {
+  color: #fca5a5;
+}
+
+:global(.dark-mode) .toastWarning {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+:global(.dark-mode) .toastWarning .toastMessage {
+  color: #fcd34d;
+}
+
+:global(.dark-mode) .toastInfo {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+:global(.dark-mode) .toastInfo .toastMessage {
+  color: #93c5fd;
+}
+
+:global(.dark-mode) .toastClose {
+  color: #ccc;
+}
+
+:global(.dark-mode) .toastClose:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Animation */
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 /* Dark mode styles for main wrapper removed */

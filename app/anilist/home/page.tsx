@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchUserId, fetchUserActivities, fetchActivityReplies, toggleActivityLike, toggleActivityReplyLike, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
+import { useToast } from '../contexts/ToastContext';
 import styles from '../anilist.module.css';
 
 const STORAGE_KEY = 'anilist_username';
@@ -23,11 +24,11 @@ interface SavedUser {
 
 export default function HomePage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [username, setUsername] = useState<string>('');
   const [user, setUser] = useState<AniListUser | null>(null);
   const [activities, setActivities] = useState<ActivityStatus[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'list' | 'list-anime' | 'list-manga' | 'text' | 'message'>('all');
   const [status, setStatus] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'>('all');
@@ -282,7 +283,7 @@ export default function HomePage() {
     customDateEndParam?: string
   ) => {
     if (!targetUsername.trim()) {
-      setError('Please enter a username');
+      showToast('Please enter a username', 'warning');
       return;
     }
 
@@ -298,13 +299,13 @@ export default function HomePage() {
     isRequestInProgressRef.current = true;
     lastRequestKeyRef.current = requestKey;
     setLoading(true);
-    setError(null);
+    // Clear any previous errors (toasts auto-dismiss)
 
     try {
       // Step 1: Get user ID
       const userData = await fetchUserId(targetUsername);
       if (!userData) {
-        setError(`User "${targetUsername}" not found. Please check the username.`);
+        showToast(`User "${targetUsername}" not found. Please check the username.`, 'error');
         isRequestInProgressRef.current = false;
         setLoading(false);
         return;
@@ -408,7 +409,7 @@ export default function HomePage() {
             const startDate = new Date(activeCustomStart);
             if (isNaN(startDate.getTime())) {
               console.error(`[loadUserActivities] ❌ Invalid custom start date: ${activeCustomStart}`);
-              setError(`Invalid start date: ${activeCustomStart}`);
+              showToast(`Invalid start date: ${activeCustomStart}`, 'error');
               setLoading(false);
               isRequestInProgressRef.current = false;
               return;
@@ -421,7 +422,7 @@ export default function HomePage() {
             const endDate = new Date(activeCustomEnd);
             if (isNaN(endDate.getTime())) {
               console.error(`[loadUserActivities] ❌ Invalid custom end date: ${activeCustomEnd}`);
-              setError(`Invalid end date: ${activeCustomEnd}`);
+              showToast(`Invalid end date: ${activeCustomEnd}`, 'error');
               setLoading(false);
               isRequestInProgressRef.current = false;
               return;
@@ -434,7 +435,7 @@ export default function HomePage() {
           // Validate custom date range
           if (createdAtGreater !== undefined && createdAtLesser !== undefined && createdAtGreater > createdAtLesser) {
             console.error(`[loadUserActivities] ❌ Invalid date range: start (${createdAtGreater}) > end (${createdAtLesser})`);
-            setError('Invalid date range: start date must be before end date');
+            showToast('Invalid date range: start date must be before end date', 'error');
             setLoading(false);
             isRequestInProgressRef.current = false;
             return;
@@ -456,7 +457,7 @@ export default function HomePage() {
         createdAtLesser
       );
       if (!activitiesData) {
-        setError('Error loading activities. Check the console for more details.');
+        showToast('Error loading activities. Check the console for more details.', 'error');
         setLoading(false);
         return;
       }
@@ -479,11 +480,11 @@ export default function HomePage() {
           errorMessage.includes('rate limit') ||
           errorMessage.toLowerCase().includes('429')) {
         const cleanMessage = errorMessage.replace('RATE_LIMIT: ', '');
-        setError('⏱️ Rate limit exceeded. The AniList API limits the number of requests. Please wait 30-60 seconds before trying again.');
+        // Rate limit toast is already shown by handleHttpError in lib/anilist.ts
       } else if (errorMessage.includes('not found') || errorMessage.includes('non trouvé')) {
-        setError(`User "${targetUsername}" not found. Please check the username.`);
+        showToast(`User "${targetUsername}" not found. Please check the username.`, 'error');
       } else {
-        setError(errorMessage);
+        // Other errors are already shown by handleHttpError in lib/anilist.ts
       }
       console.error('Error:', err);
     } finally {
@@ -956,13 +957,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {error && (
-        <div className={styles.error}>
-          <strong>Error:</strong> {error}
-          <br />
-          <small>Check the browser console (F12) for more details.</small>
-        </div>
-      )}
 
       {user && (
         <div className={styles.userInfoPage}>
@@ -1353,7 +1347,7 @@ export default function HomePage() {
         <div className={styles.loading}>Loading...</div>
       )}
 
-      {!loading && activities.length === 0 && !error && user && (
+      {!loading && activities.length === 0 && user && (
         <div className={styles.empty}>
           No activities found for this user.
         </div>

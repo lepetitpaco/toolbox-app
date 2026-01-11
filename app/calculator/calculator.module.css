@@ -1,0 +1,534 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: #1e1e1e;
+}
+
+.terminal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.terminalHeader {
+  display: flex;
+  align-items: center;
+  background: #2d2d2d;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 1rem;
+}
+
+.terminalButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.terminalButton {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3d3d3d;
+}
+
+.terminalButton:nth-child(1) {
+  background: #ff5f56;
+}
+
+.terminalButton:nth-child(2) {
+  background: #ffbd2e;
+}
+
+.terminalButton:nth-child(3) {
+  background: #27c93f;
+}
+
+.terminalTitle {
+  flex: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+}
+
+.terminalActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.7rem;
+  color: #aaa;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.tabActive {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.tabClose {
+  margin-left: 0.25rem;
+  padding: 0 0.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.tabClose:hover {
+  opacity: 1;
+}
+
+.newTabButton {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  color: #aaa;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.newTabButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.terminalBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  overflow: hidden;
+  position: relative;
+}
+
+.editorContent {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 100%;
+  padding: 1rem;
+  border: none;
+  resize: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  caret-color: #aeafad;
+  tab-size: 2;
+}
+
+.textarea::placeholder {
+  color: #6a6a6a;
+}
+
+.textarea:focus {
+  outline: none;
+}
+
+.textarea::selection {
+  background: rgba(0, 122, 204, 0.3);
+}
+
+.preview {
+  position: absolute;
+  left: 1rem;
+  pointer-events: none;
+  color: #6a6a6a;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-style: italic;
+  z-index: 1;
+}
+
+.terminalFooter {
+  background: #252526;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1rem;
+}
+
+.instructions {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.instructionItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+}
+
+.instructionKey {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.instructionDesc {
+  color: #888;
+}
+
+/* Mode Switcher */
+.modeSwitcher {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  justify-content: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.modeButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  color: #aaa;
+}
+
+.modeButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.modeButtonActive {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Desktop Mode */
+.desktopContainer {
+  position: relative;
+  flex: 1;
+  min-height: calc(100vh - 100px);
+  background: #1a1a1a;
+  overflow: hidden;
+}
+
+.windowsContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 200px);
+}
+
+/* Window Styles */
+.window {
+  position: absolute;
+  background: #2d2d2d;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.windowFocused {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.windowDragging {
+  opacity: 0.9;
+  transform: scale(1.02);
+  transition: transform 0.1s ease, opacity 0.1s ease;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.8) !important;
+}
+
+.windowHeader {
+  display: flex;
+  align-items: center;
+  background: #3d3d3d;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: grab;
+  user-select: none;
+  gap: 0.5rem;
+  transition: background 0.2s ease;
+}
+
+.windowHeader:hover {
+  background: #454545;
+}
+
+.windowHeaderDragging {
+  cursor: grabbing !important;
+  background: #4d4d4d;
+}
+
+.windowButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.windowButtonClose {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f56;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
+}
+
+.windowButtonClose:hover {
+  background: #ff3f36;
+  transform: scale(1.1);
+}
+
+.windowButtonClose span {
+  display: none;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.windowTitle {
+  flex: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #aaa;
+  text-align: center;
+  pointer-events: none;
+}
+
+.windowBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: #1e1e1e;
+}
+
+.windowTextareaContainer {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+}
+
+.windowTextarea {
+  width: 100%;
+  min-height: 100%;
+  padding: 1rem;
+  border: none;
+  resize: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  caret-color: #aeafad;
+  tab-size: 2;
+}
+
+.windowTextarea::placeholder {
+  color: #6a6a6a;
+}
+
+.windowTextarea:focus {
+  outline: none;
+}
+
+.windowTextarea::selection {
+  background: rgba(0, 122, 204, 0.3);
+}
+
+.windowPreview {
+  position: absolute;
+  left: 1rem;
+  pointer-events: none;
+  color: #6a6a6a;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-style: italic;
+  z-index: 1;
+}
+
+.windowResizeHandle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 0%, transparent 40%, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0.1) 45%, transparent 45%, transparent 55%, rgba(255, 255, 255, 0.1) 55%, rgba(255, 255, 255, 0.1) 60%, transparent 60%);
+}
+
+.windowResizeHandle:hover {
+  background: linear-gradient(135deg, transparent 0%, transparent 40%, rgba(255, 255, 255, 0.2) 40%, rgba(255, 255, 255, 0.2) 45%, transparent 45%, transparent 55%, rgba(255, 255, 255, 0.2) 55%, rgba(255, 255, 255, 0.2) 60%, transparent 60%);
+}
+
+/* Closed Windows Panel */
+.closedWindowsPanel {
+  position: fixed;
+  top: 80px;
+  right: 1rem;
+  background: rgba(45, 45, 45, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  max-width: 200px;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.closedWindowsTitle {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.closedWindowsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.closedWindowButton {
+  padding: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  color: #aaa;
+  text-align: left;
+}
+
+.closedWindowButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Desktop New Button */
+.desktopNewButton {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #007acc;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 122, 204, 0.4);
+  transition: all 0.2s ease;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.desktopNewButton:hover {
+  background: #0098ff;
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(0, 122, 204, 0.6);
+}
+
+.desktopFooter {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(37, 37, 38, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(10px);
+  z-index: 100;
+}

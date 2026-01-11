@@ -23,6 +23,27 @@ const anilistFeatures: Feature[] = [
   },
 ];
 
+const otherTools: Feature[] = [
+  {
+    name: "Countdown",
+    description: "Compte à rebours jusqu'à une heure spécifique avec notifications navigateur. Partageable via URL.",
+    path: "/countdown",
+    icon: "⏰",
+  },
+  {
+    name: "Encoder / Decoder",
+    description: "Encodez et décodez du texte en Base64, URL, HTML entities, ou générez des hash MD5, SHA-256, SHA-512.",
+    path: "/encoder",
+    icon: "🔐",
+  },
+  {
+    name: "Calculator Notes",
+    description: "Bloc-notes avec calculatrice intégrée. Tapez des calculs (1+1) et appuyez sur Entrée pour voir le résultat.",
+    path: "/calculator",
+    icon: "📝",
+  },
+];
+
 export default function Home() {
   return (
     <div className={styles.page}>
@@ -53,6 +74,40 @@ export default function Home() {
             
             <div className={styles.featuresList}>
               {anilistFeatures.map((feature) => (
+                <Link 
+                  key={feature.path} 
+                  href={feature.path} 
+                  className={styles.featureItem}
+                >
+                  <span className={styles.featureIcon}>{feature.icon}</span>
+                  <div className={styles.featureContent}>
+                    <h3 className={styles.featureName}>{feature.name}</h3>
+                    <p className={styles.featureDescription}>{feature.description}</p>
+                  </div>
+                  <div className={styles.featureArrow}>→</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.toolCard}>
+            <div className={styles.toolHeader}>
+              <div 
+                className={styles.toolIcon}
+                style={{ backgroundColor: '#f59e0b20', color: '#f59e0b' }}
+              >
+                ⚡
+              </div>
+              <div className={styles.toolContent}>
+                <h2 className={styles.toolTitle}>Outils</h2>
+                <p className={styles.toolDescription}>
+                  Collection d'outils pratiques et amusants
+                </p>
+              </div>
+            </div>
+            
+            <div className={styles.featuresList}>
+              {otherTools.map((feature) => (
                 <Link 
                   key={feature.path} 
                   href={feature.path} 

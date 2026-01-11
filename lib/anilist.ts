@@ -23,6 +23,54 @@ function incrementRequestCount() {
   }
 }
 
+// Helper function to show toast notifications
+function showToastNotification(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'error', duration: number = 5000) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('show-toast', { 
+      detail: { message, type, duration } 
+    }));
+  }
+}
+
+// Helper function to handle HTTP errors and show appropriate toasts
+function handleHttpError(response: Response, errorData: any, context: string = 'API'): never {
+  const status = response.status;
+  let message = '';
+  let toastType: 'error' | 'warning' = 'error';
+  
+  if (status === 429) {
+    message = '⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.';
+    toastType = 'warning';
+  } else if (status === 400) {
+    message = errorData?.error || errorData?.details || 'Bad request. Please check your input.';
+    toastType = 'error';
+  } else if (status === 401) {
+    message = 'Unauthorized. Your session may have expired. Please log in again.';
+    toastType = 'warning';
+  } else if (status === 403) {
+    message = 'Forbidden. You don\'t have permission to access this resource.';
+    toastType = 'error';
+  } else if (status === 404) {
+    message = 'Resource not found.';
+    toastType = 'warning';
+  } else if (status === 500) {
+    message = 'Server error. Please try again later.';
+    toastType = 'error';
+  } else {
+    message = errorData?.error || `HTTP Error ${status}. Please try again.`;
+    toastType = 'error';
+  }
+  
+  console.error(`[${context}] HTTP Error ${status}:`, errorData);
+  showToastNotification(message, toastType, status === 429 ? 8000 : 5000);
+  
+  if (status === 429) {
+    throw new Error('RATE_LIMIT: ' + message);
+  }
+  
+  throw new Error(message);
+}
+
 export interface UserStatistics {
   anime?: {
     count?: number;
@@ -323,19 +371,14 @@ export async function fetchActivityReplies(activityId: number, accessToken?: str
         console.error(`[fetchActivityReplies] Error reading error response:`, e);
       }
       
-      console.error(`[fetchActivityReplies] HTTP Error ${response.status} for activity ${activityId}:`, errorData);
-      
-      if (response.status === 429) {
-        console.warn(`Rate limit exceeded while fetching replies for activity ${activityId}`);
-        throw new Error('RATE_LIMIT: Too many requests');
-      }
-      // For 400 errors, log the full error details and return empty array
+      // For 400 errors, log and return empty array (don't show toast for individual activity errors)
       if (response.status === 400) {
         console.warn(`Activity ${activityId} returned 400 error. Details:`, errorData);
-        // Return empty array instead of null to show "no comments" message
         return [];
       }
-      return [];
+      
+      // For other errors, show toast and throw
+      handleHttpError(response, errorData, 'fetchActivityReplies');
     }
 
     const repliesData = await response.json();
@@ -438,23 +481,7 @@ export async function fetchUserId(username: string): Promise<AniListUser | null>
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (response.status === 429) {
-        const errorMessage = errorData.error || 'Trop de requêtes. Veuillez attendre quelques secondes avant de réessayer.';
-        throw new Error('RATE_LIMIT: ' + errorMessage);
-      }
-      
-      // Build a descriptive error message
-      let errorMessage = `HTTP Error: ${response.status}`;
-      if (errorData.error) {
-        errorMessage = errorData.error;
-      } else if (errorData.details) {
-        errorMessage = `${errorMessage} - ${JSON.stringify(errorData.details)}`;
-      } else if (Object.keys(errorData).length > 0) {
-        errorMessage = `${errorMessage} - ${JSON.stringify(errorData)}`;
-      }
-      
-      console.error('[fetchUserId] HTTP Error:', response.status, errorData);
-      throw new Error(errorMessage);
+      handleHttpError(response, errorData, 'fetchUserId');
     }
 
     const userData = await response.json();
@@ -541,25 +568,14 @@ export async function fetchUserActivities(
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          errorData = { raw: errorText };
+          errorData = { raw: errorText, error: errorText };
         }
       } catch (e) {
         console.error(`[fetchUserActivities] Error reading error response:`, e);
+        errorData = { error: 'Failed to read error response' };
       }
       
-      if (response.status === 429) {
-        const errorMessage = errorData.error || 'Too many requests. Please wait 30-60 seconds before trying again.';
-        throw new Error('RATE_LIMIT: ' + errorMessage);
-      }
-      console.error('[fetchUserActivities] HTTP Error:', response.status, errorData);
-      if (errorData.error) {
-        throw new Error(errorData.error);
-      }
-      if (errorData.details) {
-        console.error('[fetchUserActivities] Error details:', errorData.details);
-        throw new Error(`Erreur API: ${JSON.stringify(errorData.details)}`);
-      }
-      return null;
+      handleHttpError(response, errorData, 'fetchUserActivities');
     }
 
     const data = await response.json();
@@ -610,23 +626,19 @@ export async function fetchMediaById(mediaId: number): Promise<Media | null> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (response.status === 429) {
-        throw new Error('RATE_LIMIT: Too many requests. Please wait a moment and try again.');
-      }
-      console.error('HTTP Error:', response.status, errorData);
-      if (errorData.error) {
-        throw new Error(errorData.error);
-      }
-      return null;
+      handleHttpError(response, errorData, 'fetchMediaById');
     }
 
     const data = await response.json();
     
     if (data.error) {
       console.error('[fetchMediaById] ❌ API Error:', data.error);
+      // Check if it's a rate limit error
       if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
+        showToastNotification('⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.', 'warning', 8000);
         throw new Error('RATE_LIMIT: ' + data.error);
       }
+      showToastNotification(data.error, 'error');
       throw new Error(data.error);
     }
 
@@ -665,23 +677,19 @@ export async function searchMedia(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (response.status === 429) {
-        throw new Error('RATE_LIMIT: Too many requests. Please wait a moment and try again.');
-      }
-      console.error('HTTP Error:', response.status, errorData);
-      if (errorData.error) {
-        throw new Error(errorData.error);
-      }
-      return null;
+      handleHttpError(response, errorData, 'searchMedia');
     }
 
     const data = await response.json();
     
     if (data.error) {
       console.error('[searchMedia] ❌ API Error:', data.error);
+      // Check if it's a rate limit error
       if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
+        showToastNotification('⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.', 'warning', 8000);
         throw new Error('RATE_LIMIT: ' + data.error);
       }
+      showToastNotification(data.error, 'error');
       throw new Error(data.error);
     }
 
@@ -721,10 +729,7 @@ export async function getFollowedUsers(accessToken: string): Promise<AniListUser
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (response.status === 401) {
-        throw new Error('UNAUTHORIZED: Invalid or expired token');
-      }
-      throw new Error(errorData.error || 'Failed to fetch followed users');
+      handleHttpError(response, errorData, 'getFollowedUsers');
     }
 
     const data = await response.json();
@@ -782,23 +787,19 @@ export async function fetchMediaWithScores(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (response.status === 429) {
-        throw new Error('RATE_LIMIT: Too many requests. Please wait a moment and try again.');
-      }
-      console.error('HTTP Error:', response.status, errorData);
-      if (errorData.error) {
-        throw new Error(errorData.error);
-      }
-      return null;
+      handleHttpError(response, errorData, 'fetchMediaWithScores');
     }
 
     const data = await response.json();
     
     if (data.error) {
       console.error('[fetchMediaWithScores] ❌ API Error:', data.error);
+      // Check if it's a rate limit error
       if (data.error.includes('Too many requests') || data.error.includes('rate limit') || data.error.includes('429')) {
+        showToastNotification('⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.', 'warning', 8000);
         throw new Error('RATE_LIMIT: ' + data.error);
       }
+      showToastNotification(data.error, 'error');
       throw new Error(data.error);
     }
 
@@ -856,24 +857,7 @@ export async function getFollowedUsersScores(
         errorData = { error: errorText || 'Unknown error' };
       }
       
-      // Handle unauthorized errors (expired token)
-      if (response.status === 401) {
-        throw new Error('UNAUTHORIZED: Invalid or expired token');
-      }
-      
-      // Extract error message from response
-      let errorMessage = errorData.error || errorText || 'Failed to fetch user scores';
-      if (errorData.details) {
-        if (Array.isArray(errorData.details)) {
-          errorMessage = errorData.details.map((d: any) => d.message || JSON.stringify(d)).join(', ');
-        } else if (typeof errorData.details === 'string') {
-          errorMessage = errorData.details;
-        } else if (errorData.details.error) {
-          errorMessage = errorData.details.error;
-        }
-      }
-      
-      throw new Error(`HTTP ${response.status}: ${errorMessage}`);
+      handleHttpError(response, errorData, 'getFollowedUsersScores');
     }
 
     const data = await response.json();
@@ -918,22 +902,7 @@ export async function toggleActivityLike(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (response.status === 401) {
-        throw new Error('UNAUTHORIZED: Invalid or expired token');
-      }
-      
-      // Build a descriptive error message
-      let errorMessage = `HTTP Error: ${response.status}`;
-      if (errorData.error) {
-        errorMessage = errorData.error;
-      } else if (errorData.details) {
-        errorMessage = `${errorMessage} - ${JSON.stringify(errorData.details)}`;
-      } else if (Object.keys(errorData).length > 0) {
-        errorMessage = `${errorMessage} - ${JSON.stringify(errorData)}`;
-      }
-      
-      console.error('[toggleActivityReplyLike] Error response:', errorData);
-      throw new Error(errorMessage);
+      handleHttpError(response, errorData, 'toggleActivityLike');
     }
 
     const data = await response.json();

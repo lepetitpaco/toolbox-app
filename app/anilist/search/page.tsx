@@ -4,17 +4,18 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { searchMedia, fetchMediaById, fetchMediaWithScores, Media, getFollowedUsersScores, UserMediaScore, fetchUserMediaListActivities, ActivityStatus } from '@/lib/anilist';
 import { useApiRequest } from '../contexts/ApiRequestContext';
+import { useToast } from '../contexts/ToastContext';
 import styles from './search.module.css';
 
 const AUTH_TOKEN_KEY = 'anilist_access_token';
 
 function SearchContent() {
   const searchParams = useSearchParams();
+  const { showToast } = useToast();
   const [query, setQuery] = useState<string>('');
   const [mediaType, setMediaType] = useState<'ALL' | 'ANIME' | 'MANGA'>('ALL');
   const [results, setResults] = useState<Media[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [followedScores, setFollowedScores] = useState<UserMediaScore[]>([]);
@@ -76,7 +77,7 @@ function SearchContent() {
         console.log(`[SearchPage] 📋 Loading media from URL - mediaId: ${mediaId}`);
         setLoading(true);
         setLoadingScores(true);
-        setError(null);
+        // Clear any previous errors (toasts auto-dismiss)
         setTokenError(null);
         
         const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
@@ -96,27 +97,20 @@ function SearchContent() {
               setFollowedScores(result.scores);
             } else {
               console.log('[SearchPage] ⚠️ Media not found');
-              setError('Media not found');
+              showToast('Media not found', 'warning');
             }
           })
           .catch((err: any) => {
             const errorMessage = err?.message || 'An error occurred';
-            if (errorMessage.startsWith('RATE_LIMIT:') || 
-                errorMessage.includes('Too many requests') ||
-                errorMessage.includes('rate limit') ||
-                errorMessage.toLowerCase().includes('429')) {
-              setError('⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.');
-            } else if (errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('401')) {
+            // Rate limit and other HTTP errors are already shown by handleHttpError in lib/anilist.ts
+            if (errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('401')) {
               // Handle token expiration/invalidation
               if (token) {
                 localStorage.removeItem(AUTH_TOKEN_KEY);
                 localStorage.removeItem('anilist_user');
                 setHasToken(false);
-                setTokenError('Your session has expired. Please log in again.');
+                showToast('Your session has expired. Please log in again.', 'warning');
               }
-              setError(errorMessage);
-            } else {
-              setError(errorMessage);
             }
             setFollowedScores([]);
           })
@@ -142,7 +136,7 @@ function SearchContent() {
     }
 
     setLoading(true);
-    setError(null);
+    // Clear any previous errors (toasts auto-dismiss)
 
     try {
       const data = await searchMedia(searchQuery.trim(), type, 1, 10);
@@ -156,14 +150,7 @@ function SearchContent() {
     } catch (err: any) {
       const errorMessage = err?.message || 'An error occurred';
       
-      if (errorMessage.startsWith('RATE_LIMIT:') || 
-          errorMessage.includes('Too many requests') ||
-          errorMessage.includes('rate limit') ||
-          errorMessage.toLowerCase().includes('429')) {
-        setError('⏱️ Rate limit exceeded. Please wait 30-60 seconds before trying again.');
-      } else {
-        setError(errorMessage);
-      }
+      // Rate limit and other HTTP errors are already shown by handleHttpError in lib/anilist.ts
       setResults([]);
       setShowSuggestions(false);
     } finally {
@@ -394,11 +381,6 @@ function SearchContent() {
           </select>
         </div>
 
-        {error && (
-          <div className={styles.error}>
-            {error}
-          </div>
-        )}
       </div>
 
       <main className={styles.main}>

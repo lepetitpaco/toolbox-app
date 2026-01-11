@@ -3,15 +3,19 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ApiRequestProvider, useApiRequest } from './contexts/ApiRequestContext';
+import { ToastProvider } from './contexts/ToastContext';
 import styles from './anilist.module.css';
 
 const THEME_KEY = 'anilist_theme';
 const COLOR_THEME_KEY = 'anilist_color_theme';
 const BACKGROUND_IMAGE_KEY = 'anilist_background_image';
+const BACKGROUND_IMAGE_POSITION_KEY = 'anilist_background_image_position';
+const BACKGROUND_IMAGE_ZOOM_KEY = 'anilist_background_image_zoom';
 const AUTH_TOKEN_KEY = 'anilist_access_token';
 const AUTH_USER_KEY = 'anilist_user';
 
 export type ColorTheme = 'magical-blue' | 'forest-green' | 'twilight-purple' | 'ice-blue' | 'sunset-orange' | 'default';
+export type BackgroundImagePosition = 'center' | 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 interface AuthUser {
   id: number;
@@ -31,6 +35,8 @@ export default function AniListLayout({
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [colorTheme, setColorTheme] = useState<ColorTheme>('default');
   const [backgroundImage, setBackgroundImage] = useState<string>('');
+  const [backgroundImagePosition, setBackgroundImagePosition] = useState<BackgroundImagePosition>('center');
+  const [backgroundImageZoom, setBackgroundImageZoom] = useState<number>(100);
   const [showThemeSelector, setShowThemeSelector] = useState<boolean>(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -62,6 +68,26 @@ export default function AniListLayout({
         const escapedUrl = trimmedUrl.replace(/'/g, "\\'").replace(/"/g, '\\"');
         // Use double quotes in CSS to avoid issues with single quotes in URLs
         document.documentElement.style.setProperty('--background-image', `url("${escapedUrl}")`);
+      }
+
+      const savedPosition = localStorage.getItem(BACKGROUND_IMAGE_POSITION_KEY) as BackgroundImagePosition;
+      if (savedPosition) {
+        setBackgroundImagePosition(savedPosition);
+        const cssPosition = savedPosition.replace('-', ' ');
+        document.documentElement.style.setProperty('--background-image-position', cssPosition);
+      } else {
+        document.documentElement.style.setProperty('--background-image-position', 'center');
+      }
+
+      const savedZoom = localStorage.getItem(BACKGROUND_IMAGE_ZOOM_KEY);
+      if (savedZoom) {
+        const zoom = parseInt(savedZoom, 10);
+        if (!isNaN(zoom) && zoom >= 50 && zoom <= 200) {
+          setBackgroundImageZoom(zoom);
+          document.documentElement.style.setProperty('--background-image-zoom', zoom.toString());
+        }
+      } else {
+        document.documentElement.style.setProperty('--background-image-zoom', '100');
       }
 
       const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
@@ -144,6 +170,24 @@ export default function AniListLayout({
     }
   };
 
+  const handleBackgroundImagePositionChange = (position: BackgroundImagePosition) => {
+    setBackgroundImagePosition(position);
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      localStorage.setItem(BACKGROUND_IMAGE_POSITION_KEY, position);
+      // Convert position format: "top-left" -> "top left" for CSS
+      const cssPosition = position.replace('-', ' ');
+      document.documentElement.style.setProperty('--background-image-position', cssPosition);
+    }
+  };
+
+  const handleBackgroundImageZoomChange = (zoom: number) => {
+    setBackgroundImageZoom(zoom);
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      localStorage.setItem(BACKGROUND_IMAGE_ZOOM_KEY, zoom.toString());
+      document.documentElement.style.setProperty('--background-image-zoom', zoom.toString());
+    }
+  };
+
   const handleTabChange = (tab: 'home' | 'search' | 'compare') => {
     setActiveTab(tab);
     if (tab === 'search') {
@@ -168,26 +212,32 @@ export default function AniListLayout({
 
   return (
     <ApiRequestProvider>
-      <Suspense fallback={<div>Loading...</div>}>
-        <AniListLayoutContent
-          activeTab={activeTab}
-          isDarkMode={isDarkMode}
-          colorTheme={colorTheme}
-          backgroundImage={backgroundImage}
-          showThemeSelector={showThemeSelector}
-          authUser={authUser}
-          accessToken={accessToken}
-          onTabChange={handleTabChange}
-          onToggleDarkMode={toggleDarkMode}
-          onColorThemeChange={handleColorThemeChange}
+      <ToastProvider>
+        <Suspense fallback={<div>Loading...</div>}>
+          <AniListLayoutContent
+            activeTab={activeTab}
+            isDarkMode={isDarkMode}
+            colorTheme={colorTheme}
+            backgroundImage={backgroundImage}
+            showThemeSelector={showThemeSelector}
+            authUser={authUser}
+            accessToken={accessToken}
+            onTabChange={handleTabChange}
+            onToggleDarkMode={toggleDarkMode}
+            onColorThemeChange={handleColorThemeChange}
           onBackgroundImageChange={handleBackgroundImageChange}
+          backgroundImagePosition={backgroundImagePosition}
+          backgroundImageZoom={backgroundImageZoom}
+          onBackgroundImagePositionChange={handleBackgroundImagePositionChange}
+          onBackgroundImageZoomChange={handleBackgroundImageZoomChange}
           onToggleThemeSelector={() => setShowThemeSelector(!showThemeSelector)}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-        >
-          {children}
-        </AniListLayoutContent>
-      </Suspense>
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+          >
+            {children}
+          </AniListLayoutContent>
+        </Suspense>
+      </ToastProvider>
     </ApiRequestProvider>
   );
 }
@@ -197,6 +247,8 @@ function AniListLayoutContent({
   isDarkMode,
   colorTheme,
   backgroundImage,
+  backgroundImagePosition,
+  backgroundImageZoom,
   showThemeSelector,
   authUser,
   accessToken,
@@ -204,6 +256,8 @@ function AniListLayoutContent({
   onToggleDarkMode,
   onColorThemeChange,
   onBackgroundImageChange,
+  onBackgroundImagePositionChange,
+  onBackgroundImageZoomChange,
   onToggleThemeSelector,
   onLogin,
   onLogout,
@@ -213,6 +267,8 @@ function AniListLayoutContent({
   isDarkMode: boolean;
   colorTheme: ColorTheme;
   backgroundImage: string;
+  backgroundImagePosition: BackgroundImagePosition;
+  backgroundImageZoom: number;
   showThemeSelector: boolean;
   authUser: AuthUser | null;
   accessToken: string | null;
@@ -220,6 +276,8 @@ function AniListLayoutContent({
   onToggleDarkMode: () => void;
   onColorThemeChange: (theme: ColorTheme) => void;
   onBackgroundImageChange: (imageUrl: string) => void;
+  onBackgroundImagePositionChange: (position: BackgroundImagePosition) => void;
+  onBackgroundImageZoomChange: (zoom: number) => void;
   onToggleThemeSelector: () => void;
   onLogin: () => void;
   onLogout: () => void;
@@ -413,6 +471,49 @@ function AniListLayoutContent({
                   <div className={styles.imageUrlHint}>
                     💡 Tip: Some images may be blocked by CORS. Try images from imgur, imgbb, or upload to a CDN.
                   </div>
+                  
+                  {backgroundImage && backgroundImage.trim() && (
+                    <>
+                      <div className={styles.themeSelectorTitle} style={{ marginTop: '1rem' }}>Image Position</div>
+                      <div className={styles.imagePositionGrid}>
+                        {(['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'] as BackgroundImagePosition[]).map((pos) => (
+                          <button
+                            key={pos}
+                            onClick={() => onBackgroundImagePositionChange(pos)}
+                            className={`${styles.imagePositionButton} ${backgroundImagePosition === pos ? styles.imagePositionButtonActive : ''}`}
+                            title={pos.replace('-', ' ')}
+                          >
+                            {pos === 'top-left' && '↖️'}
+                            {pos === 'top' && '⬆️'}
+                            {pos === 'top-right' && '↗️'}
+                            {pos === 'left' && '⬅️'}
+                            {pos === 'center' && '⭕'}
+                            {pos === 'right' && '➡️'}
+                            {pos === 'bottom-left' && '↙️'}
+                            {pos === 'bottom' && '⬇️'}
+                            {pos === 'bottom-right' && '↘️'}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div className={styles.themeSelectorTitle} style={{ marginTop: '1rem' }}>Zoom: {backgroundImageZoom}%</div>
+                      <div className={styles.imageZoomContainer}>
+                        <input
+                          type="range"
+                          min="50"
+                          max="200"
+                          value={backgroundImageZoom}
+                          onChange={(e) => onBackgroundImageZoomChange(parseInt(e.target.value, 10))}
+                          className={styles.imageZoomSlider}
+                        />
+                        <div className={styles.imageZoomLabels}>
+                          <span>50%</span>
+                          <span>200%</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
                   <div className={styles.presetImages}>
                     <div className={styles.presetImagesLabel}>Presets:</div>
                     <button
