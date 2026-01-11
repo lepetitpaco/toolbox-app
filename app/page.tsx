@@ -48,6 +48,18 @@ const otherTools: Feature[] = [
     path: "/date-calculator",
     icon: "📅",
   },
+  {
+    name: "File Diff",
+    description: "Comparez deux fichiers et visualisez les différences ligne par ligne avec coloration syntaxique.",
+    path: "/file-diff",
+    icon: "📊",
+  },
+  {
+    name: "Code Formatter",
+    description: "Formatez et indentez votre code selon les règles de chaque langage (JSON, JavaScript, TypeScript, HTML, CSS, Python, etc.).",
+    path: "/formatter",
+    icon: "✨",
+  },
 ];
 
 export default function Home() {

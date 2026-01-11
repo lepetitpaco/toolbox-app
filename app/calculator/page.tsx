@@ -79,7 +79,8 @@ export default function CalculatorPage() {
         } else {
           createNewTab();
         }
-      } catch {
+      } catch (error) {
+        console.error('[Calculator] Erreur lors du chargement depuis localStorage:', error);
         createNewTab();
       }
     } else {
@@ -311,7 +312,8 @@ export default function CalculatorPage() {
         if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
           return { name: varName, value };
         }
-      } catch {
+      } catch (error) {
+        console.error('[Calculator] Erreur lors de l\'assignation de variable:', error);
         return null;
       }
     }
@@ -374,6 +376,7 @@ export default function CalculatorPage() {
           }
         }
       } catch (error) {
+        console.error('[Calculator] Erreur lors de l\'évaluation:', error);
         return { result: null, isExpression: false };
       }
     }

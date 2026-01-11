@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styles from './date-calculator.module.css';
-import { useToast } from '../anilist/contexts/ToastContext';
 
 interface ParsedDuration {
   days: number;
@@ -31,7 +30,6 @@ const COMMON_TIMEZONES: Timezone[] = [
 ];
 
 export default function DateCalculatorPage() {
-  const { showToast } = useToast();
 
   // Section 1: Calcul de date (ajouter une durée)
   const [durationInput, setDurationInput] = useState<string>('');
@@ -393,7 +391,7 @@ export default function DateCalculatorPage() {
       
       // Safety check: ensure date is progressing
       if (nextDate.getTime() <= current.getTime()) {
-        console.error('[calculateWorkingDays] Date not progressing, breaking loop');
+        console.error('[Date Calculator] Erreur: Date not progressing, breaking loop');
         break;
       }
       
@@ -401,7 +399,7 @@ export default function DateCalculatorPage() {
     }
     
     if (iterations >= maxIterations) {
-      console.error('[calculateWorkingDays] Max iterations reached, possible infinite loop');
+      console.error('[Date Calculator] Erreur: Max iterations reached, possible infinite loop');
       return null;
     }
 
@@ -525,8 +523,11 @@ export default function DateCalculatorPage() {
   };
 
   const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    showToast(`${label} copié !`, 'success');
+    navigator.clipboard.writeText(text).then(() => {
+      console.log(`[Date Calculator] ${label} copié avec succès`);
+    }).catch((error) => {
+      console.error(`[Date Calculator] Erreur lors de la copie:`, error);
+    });
   };
 
   const setNow = () => {

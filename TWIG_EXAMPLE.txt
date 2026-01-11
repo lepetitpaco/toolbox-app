@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Page Title{% endblock %}
+{% block content %}
+<div class="container">
+<h1>{{ page_title }}</h1>
+{% if user %}
+<p>Welcome, {{ user.name }}!</p>
+{% if user.isAdmin %}
+<button>Admin Panel</button>
+{% endif %}
+{% else %}
+<p>Please <a href="/login">login</a></p>
+{% endif %}
+<ul>
+{% for item in items %}
+<li>{{ item.name }} - {{ item.price }}</li>
+{% endfor %}
+</ul>
+<script>
+function test(){
+var x=1;
+if(x>0){
+console.log("test");
+}
+}
+</script>
+<style>
+.container{
+padding:20px;
+margin:10px;
+}
+</style>
+</div>
+{% endblock %}

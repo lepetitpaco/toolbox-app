@@ -34,6 +34,7 @@ export default function EncoderPage() {
           return '';
       }
     } catch (error) {
+      console.error('[Encoder] Erreur lors de l\'encodage:', error);
       return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   };
@@ -57,6 +58,7 @@ export default function EncoderPage() {
           return '';
       }
     } catch (error) {
+      console.error('[Encoder] Erreur lors du décodage:', error);
       return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   };
@@ -79,6 +81,7 @@ export default function EncoderPage() {
       
       return hashHex;
     } catch (error) {
+      console.error('[Encoder] Erreur lors du hashage:', error);
       return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   };
@@ -117,7 +120,11 @@ export default function EncoderPage() {
   };
 
   const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('[Encoder] Texte copié avec succès');
+    }).catch((error) => {
+      console.error('[Encoder] Erreur lors de la copie:', error);
+    });
   };
 
   const handleClear = () => {
