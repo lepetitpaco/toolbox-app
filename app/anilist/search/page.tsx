@@ -6,6 +6,7 @@ import { searchMedia, fetchMediaById, Media, getFollowedUsersScores, UserMediaSc
 import styles from './search.module.css';
 
 const AUTH_TOKEN_KEY = 'anilist_access_token';
+const SCORES_CACHE_KEY = 'anilist_scores_cache';
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -24,6 +25,102 @@ function SearchContent() {
   const [loadingUserActivities, setLoadingUserActivities] = useState<Record<number, boolean>>({});
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  
+  // Cache for scores stored in localStorage (with TTL)
+  // Structure: { [mediaId]: { data: UserMediaScore[], timestamp: number } }
+  const lastScoresMediaIdRef = useRef<number | null>(null);
+  
+  // TTL (Time To Live) in milliseconds - 10 minutes
+  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+  
+  // Helper functions to manage localStorage cache
+  const getScoresCache = useCallback((): { 
+    [mediaId: number]: { 
+      data: UserMediaScore[], 
+      timestamp: number 
+    } 
+  } => {
+    if (typeof window === 'undefined') return {};
+    
+    try {
+      const cached = localStorage.getItem(SCORES_CACHE_KEY);
+      if (!cached) return {};
+      
+      const parsed = JSON.parse(cached);
+      // Clean expired entries when loading
+      const now = Date.now();
+      const cleaned: typeof parsed = {};
+      
+      Object.keys(parsed).forEach(mediaIdStr => {
+        const mediaId = parseInt(mediaIdStr, 10);
+        const entry = parsed[mediaId];
+        if (entry && (now - entry.timestamp) < CACHE_TTL) {
+          cleaned[mediaId] = entry;
+        }
+      });
+      
+      // Update localStorage with cleaned cache
+      if (Object.keys(cleaned).length !== Object.keys(parsed).length) {
+        localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cleaned));
+      }
+      
+      return cleaned;
+    } catch (e) {
+      console.error('Error reading scores cache from localStorage:', e);
+      // Clear corrupted cache
+      try {
+        localStorage.removeItem(SCORES_CACHE_KEY);
+      } catch {}
+      return {};
+    }
+  }, [CACHE_TTL]);
+  
+  const setScoresCache = useCallback((mediaId: number, scores: UserMediaScore[]) => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const cache = getScoresCache();
+      cache[mediaId] = {
+        data: scores,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {
+      console.error('Error saving scores cache to localStorage:', e);
+      // If quota exceeded, try to clean old entries
+      try {
+        const cache = getScoresCache();
+        // Remove oldest entries (keep only most recent 10)
+        const entries = Object.entries(cache).sort((a, b) => b[1].timestamp - a[1].timestamp);
+        const cleaned: typeof cache = {};
+        entries.slice(0, 10).forEach(([mediaIdStr, entry]) => {
+          cleaned[parseInt(mediaIdStr, 10)] = entry;
+        });
+        localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cleaned));
+        
+        // Retry saving
+        cleaned[mediaId] = {
+          data: scores,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cleaned));
+      } catch (e2) {
+        console.error('Failed to save cache even after cleanup:', e2);
+      }
+    }
+  }, [getScoresCache]);
+  
+  const removeScoresCache = useCallback((mediaId: number) => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const cache = getScoresCache();
+      delete cache[mediaId];
+      localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {
+      console.error('Error removing from scores cache:', e);
+    }
+  }, [getScoresCache]);
 
   /**
    * Check if user is authenticated and monitor token changes.
@@ -107,6 +204,7 @@ function SearchContent() {
    * This effect:
    * - Checks if user is authenticated (has token)
    * - Fetches scores from followed users for the selected media
+   * - Uses cache to avoid refetching the same media
    * - Handles token expiration (clears auth data and shows error)
    * - Updates UI with scores or error messages
    */
@@ -114,12 +212,27 @@ function SearchContent() {
     if (selectedMedia?.id) {
       const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
       
+      // Check cache first with TTL validation
+      const cache = getScoresCache();
+      const cachedEntry = cache[selectedMedia.id];
+      
+      if (cachedEntry && lastScoresMediaIdRef.current === selectedMedia.id) {
+        // Cache is already validated by getScoresCache (expired entries removed)
+        // Use it directly
+        setFollowedScores(cachedEntry.data);
+        setLoadingScores(false);
+        return;
+      }
+      
       if (token) {
         setLoadingScores(true);
         setTokenError(null);
         
         getFollowedUsersScores(token, selectedMedia.id)
           .then((scores) => {
+            // Cache the scores in localStorage with current timestamp
+            setScoresCache(selectedMedia.id, scores || []);
+            lastScoresMediaIdRef.current = selectedMedia.id;
             // Update scores state with fetched data
             setFollowedScores(scores || []);
           })
@@ -150,8 +263,41 @@ function SearchContent() {
     } else {
       // No media selected, clear scores
       setFollowedScores([]);
+      lastScoresMediaIdRef.current = null;
     }
-  }, [selectedMedia?.id]);
+  }, [selectedMedia?.id, getScoresCache, setScoresCache]);
+  
+  // Cleanup expired cache entries periodically (every 5 minutes)
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      if (typeof window === 'undefined') return;
+      
+      try {
+        const cache = getScoresCache();
+        const now = Date.now();
+        let hasChanges = false;
+        
+        // Remove expired entries
+        Object.keys(cache).forEach(mediaIdStr => {
+          const mediaId = parseInt(mediaIdStr, 10);
+          const entry = cache[mediaId];
+          if (entry && (now - entry.timestamp) >= CACHE_TTL) {
+            delete cache[mediaId];
+            hasChanges = true;
+          }
+        });
+        
+        // Update localStorage if changes were made
+        if (hasChanges) {
+          localStorage.setItem(SCORES_CACHE_KEY, JSON.stringify(cache));
+        }
+      } catch (e) {
+        console.error('Error during cache cleanup:', e);
+      }
+    }, 5 * 60 * 1000); // Run every 5 minutes
+    
+    return () => clearInterval(cleanupInterval);
+  }, [getScoresCache]);
 
   // Handle search with debounce for auto-completion
   const performSearch = useCallback(async (searchQuery: string, type: 'ALL' | 'ANIME' | 'MANGA') => {
@@ -201,7 +347,7 @@ function SearchContent() {
     if (query.trim().length >= 2) {
       searchTimeoutRef.current = setTimeout(() => {
         performSearch(query, mediaType);
-      }, 300); // 300ms debounce
+      }, 500); // 500ms debounce to reduce API calls
     } else {
       setResults([]);
       setShowSuggestions(false);

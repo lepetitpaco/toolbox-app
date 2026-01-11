@@ -493,8 +493,8 @@ export async function fetchUserActivities(
       }
       
       if (response.status === 429) {
-        const errorMessage = errorData.error || 'Trop de requêtes. Veuillez attendre quelques secondes avant de réessayer.';
-        throw new Error(errorMessage);
+        const errorMessage = errorData.error || 'Too many requests. Please wait 30-60 seconds before trying again.';
+        throw new Error('RATE_LIMIT: ' + errorMessage);
       }
       console.error('[fetchUserActivities] HTTP Error:', response.status, errorData);
       if (errorData.error) {
@@ -511,6 +511,10 @@ export async function fetchUserActivities(
     
     if (data.error) {
       console.error('API Error:', data.error);
+      // Check if it's a rate limit error
+      if (data.error.includes('RATE_LIMIT:') || data.error.includes('Too many requests') || data.error.includes('429')) {
+        throw new Error(data.error.startsWith('RATE_LIMIT:') ? data.error : 'RATE_LIMIT: ' + data.error);
+      }
       throw new Error(data.error);
     }
 
@@ -528,6 +532,10 @@ export async function fetchUserActivities(
     console.error('Error fetching user activities:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.error('Network error - check your internet connection');
+    }
+    // Propagate RATE_LIMIT errors so they can be handled by the UI
+    if (error instanceof Error && error.message.includes('RATE_LIMIT:')) {
+      throw error;
     }
     return null;
   }

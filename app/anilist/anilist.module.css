@@ -673,6 +673,96 @@
   padding: 0.5rem;
 }
 
+.applyFiltersButton {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.applyFiltersButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
+}
+
+.applyFiltersButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.applyFiltersButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.filterActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.refreshFiltersButton,
+.resetFiltersButton {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.refreshFiltersButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.refreshFiltersButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
+}
+
+.resetFiltersButton {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+  border: 2px solid #6c757d;
+}
+
+.resetFiltersButton:hover:not(:disabled) {
+  background: rgba(108, 117, 125, 0.2);
+  border-color: #5a6268;
+  color: #5a6268;
+  transform: translateY(-2px);
+}
+
+.refreshFiltersButton:active:not(:disabled),
+.resetFiltersButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.refreshFiltersButton:disabled,
+.resetFiltersButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .stats {
   margin-left: auto;
   font-weight: 700;
@@ -1847,6 +1937,38 @@
 
 :global(.dark-mode) .savedUserAvatar {
   border-color: rgba(139, 154, 255, 0.4);
+}
+
+:global(.dark-mode) .applyFiltersButton {
+  background: linear-gradient(135deg, #8b9aff 0%, #9d7bc4 100%);
+  box-shadow: 0 4px 12px rgba(139, 154, 255, 0.4);
+}
+
+:global(.dark-mode) .applyFiltersButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7a8aef 0%, #8c6ab3 100%);
+  box-shadow: 0 6px 20px rgba(139, 154, 255, 0.5);
+}
+
+:global(.dark-mode) .refreshFiltersButton {
+  background: linear-gradient(135deg, #8b9aff 0%, #9d7bc4 100%);
+  box-shadow: 0 2px 8px rgba(139, 154, 255, 0.4);
+}
+
+:global(.dark-mode) .refreshFiltersButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7a8aef 0%, #8c6ab3 100%);
+  box-shadow: 0 4px 12px rgba(139, 154, 255, 0.5);
+}
+
+:global(.dark-mode) .resetFiltersButton {
+  background: rgba(139, 154, 255, 0.1);
+  color: #8b9aff;
+  border-color: #8b9aff;
+}
+
+:global(.dark-mode) .resetFiltersButton:hover:not(:disabled) {
+  background: rgba(139, 154, 255, 0.2);
+  border-color: #7a8aef;
+  color: #7a8aef;
 }
 
 :global(.dark-mode) .savedUserName {

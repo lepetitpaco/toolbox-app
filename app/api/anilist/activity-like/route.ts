@@ -35,6 +35,17 @@ const GET_ACTIVITY = `
   }
 `;
 
+// Query to get updated activity reply with like info
+const GET_ACTIVITY_REPLY = `
+  query GetActivityReply($id: Int!) {
+    ActivityReply(id: $id) {
+      id
+      isLiked
+      likeCount
+    }
+  }
+`;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -49,14 +60,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine the LikeableType from activityType
-    // AniList uses specific types: TEXT, ANIME_LIST, MANGA_LIST, MESSAGE
-    // But ToggleLike expects: ACTIVITY, THREAD, THREAD_COMMENT, etc.
-    // For activities, we should use ACTIVITY
+    // AniList uses specific types: TEXT, ANIME_LIST, MANGA_LIST, MESSAGE, ACTIVITY_REPLY
+    // But ToggleLike expects: ACTIVITY, THREAD, THREAD_COMMENT, ACTIVITY_REPLY, etc.
     let likeableType = 'ACTIVITY';
+    const isReply = activityType === 'ACTIVITY_REPLY';
     
-    // If activityType is provided, we could potentially use it,
-    // but based on AniList API, activities should use ACTIVITY type
-    console.log('[activity-like API] Activity type:', activityType);
+    if (isReply) {
+      likeableType = 'ACTIVITY_REPLY';
+    }
+    
+    console.log('[activity-like API] Activity type:', activityType, 'LikeableType:', likeableType);
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -79,7 +92,7 @@ export async function POST(request: NextRequest) {
         query: TOGGLE_ACTIVITY_LIKE,
         variables: { 
           id: parseInt(activityId, 10),
-          type: 'ACTIVITY'
+          type: likeableType
         },
       }),
     });
@@ -114,8 +127,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2: Fetch the updated activity to get isLiked and likeCount
-    const activityResponse = await fetch(ANILIST_API_URL, {
+    // Step 2: Fetch the updated activity/reply to get isLiked and likeCount
+    const fetchQuery = isReply ? GET_ACTIVITY_REPLY : GET_ACTIVITY;
+    const fetchResponse = await fetch(ANILIST_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -123,17 +137,17 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        query: GET_ACTIVITY,
+        query: fetchQuery,
         variables: { 
           id: parseInt(activityId, 10)
         },
       }),
     });
 
-    const activityResponseText = await activityResponse.text();
+    const fetchResponseText = await fetchResponse.text();
 
-    if (!activityResponse.ok) {
-      console.error(`[activity-like API] GetActivity returned HTTP ${activityResponse.status}:`, activityResponseText);
+    if (!fetchResponse.ok) {
+      console.error(`[activity-like API] Get${isReply ? 'ActivityReply' : 'Activity'} returned HTTP ${fetchResponse.status}:`, fetchResponseText);
       // Even if this fails, the like was toggled, so return success with estimated values
       return NextResponse.json({
         id: parseInt(activityId, 10),
@@ -142,11 +156,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    let activityData;
+    let fetchData;
     try {
-      activityData = JSON.parse(activityResponseText);
+      fetchData = JSON.parse(fetchResponseText);
     } catch (e) {
-      console.error('[activity-like API] Failed to parse GetActivity response as JSON:', e);
+      console.error(`[activity-like API] Failed to parse Get${isReply ? 'ActivityReply' : 'Activity'} response as JSON:`, e);
       return NextResponse.json({
         id: parseInt(activityId, 10),
         isLiked: true,
@@ -154,8 +168,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (activityData.errors) {
-      console.error('[activity-like API] GetActivity GraphQL errors:', JSON.stringify(activityData.errors, null, 2));
+    if (fetchData.errors) {
+      console.error(`[activity-like API] Get${isReply ? 'ActivityReply' : 'Activity'} GraphQL errors:`, JSON.stringify(fetchData.errors, null, 2));
       return NextResponse.json({
         id: parseInt(activityId, 10),
         isLiked: true,
@@ -163,8 +177,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const activity = activityData.data?.Activity;
-    if (!activity) {
+    const result = isReply ? fetchData.data?.ActivityReply : fetchData.data?.Activity;
+    if (!result) {
       return NextResponse.json({
         id: parseInt(activityId, 10),
         isLiked: true,
@@ -173,9 +187,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: activity.id,
-      isLiked: activity.isLiked,
-      likeCount: activity.likeCount,
+      id: result.id,
+      isLiked: result.isLiked,
+      likeCount: result.likeCount,
     });
   } catch (error) {
     console.error('[activity-like API] Error toggling activity like:', error);

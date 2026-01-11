@@ -149,6 +149,24 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       console.error(`[activities API] AniList API returned HTTP ${response.status}:`, responseText);
+      
+      // Check if it's a rate limit error (429)
+      if (response.status === 429) {
+        let errorMessage = 'Too many requests. Please wait 30-60 seconds before trying again.';
+        try {
+          const errorData = JSON.parse(responseText);
+          if (errorData.errors && errorData.errors.length > 0) {
+            errorMessage = errorData.errors[0].message || errorMessage;
+          }
+        } catch (e) {
+          // Use default message if parsing fails
+        }
+        return NextResponse.json(
+          { error: `RATE_LIMIT: ${errorMessage}`, details: responseText },
+          { status: 429 }
+        );
+      }
+      
       return NextResponse.json(
         { error: `HTTP Error: ${response.status}`, details: responseText },
         { status: response.status }

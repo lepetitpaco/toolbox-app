@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchUserId, fetchUserActivities, fetchActivityReplies, toggleActivityLike, toggleActivityReplyLike, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
 import styles from '../anilist.module.css';
@@ -37,6 +37,13 @@ export default function ActivitiesPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [likingActivityId, setLikingActivityId] = useState<number | null>(null);
   const [likingReplyId, setLikingReplyId] = useState<number | null>(null);
+  
+  // Refs for debouncing and preventing duplicate requests
+  const filterDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRequestKeyRef = useRef<string>('');
+  const isRequestInProgressRef = useRef<boolean>(false);
+  const isLoadingFiltersRef = useRef<boolean>(false); // Flag to prevent useEffect during filter loading
+  const isLoadingFiltersRef = useRef<boolean>(false); // Flag to prevent useEffect during filter loading
 
   // Load saved username, theme, and saved users from localStorage
   useEffect(() => {
@@ -110,6 +117,17 @@ export default function ActivitiesPage() {
       return;
     }
 
+    // Create a unique key for this request to prevent duplicates
+    // Note: statusFilter is NOT included as it's filtered client-side only
+    const requestKey = `${targetUsername}-${pageNum}-${activityType || 'all'}-${mediaTypeFilter || 'all'}`;
+    
+    // Prevent duplicate requests
+    if (isRequestInProgressRef.current && lastRequestKeyRef.current === requestKey) {
+      return;
+    }
+    
+    isRequestInProgressRef.current = true;
+    lastRequestKeyRef.current = requestKey;
     setLoading(true);
     setError(null);
 
@@ -117,10 +135,8 @@ export default function ActivitiesPage() {
       // Step 1: Get user ID
       const userData = await fetchUserId(targetUsername);
       if (!userData) {
-        // Don't set error here if it was already set by the catch block
-        if (!error) {
-          setError(`User "${targetUsername}" not found. Please check the username.`);
-        }
+        setError(`User "${targetUsername}" not found. Please check the username.`);
+        isRequestInProgressRef.current = false;
         setLoading(false);
         return;
       }
@@ -169,9 +185,10 @@ export default function ActivitiesPage() {
       }
       console.error('Error:', err);
     } finally {
+      isRequestInProgressRef.current = false;
       setLoading(false);
     }
-  }, [saveUserToHistory, filter, mediaType, status, error]);
+  }, [saveUserToHistory, filter, mediaType]);
 
   // Load user from saved users list
   const loadSavedUser = useCallback((savedUser: SavedUser) => {
@@ -205,15 +222,74 @@ export default function ActivitiesPage() {
   }, []); // Only run once on mount
 
   // Reload activities when filters change (but only if user is already loaded)
+  // Note: status filtering is done client-side, so status changes don't trigger API reload
+  // Use debounce to avoid multiple requests when user changes filters quickly
   useEffect(() => {
+    // Skip if we're loading filters from storage (to avoid duplicate requests)
+    if (isLoadingFiltersRef.current) {
+      return;
+    }
+    
+    if (filterDebounceRef.current) {
+      clearTimeout(filterDebounceRef.current);
+    }
+    
     if (user && username) {
-      // Reset to page 1 when filters change
+      // Debounce filter changes by 500ms to avoid spam
+      filterDebounceRef.current = setTimeout(() => {
+        // Double-check we're not loading filters
+        if (!isLoadingFiltersRef.current) {
+          // Reset to page 1 when filters change
+          setPage(1);
+          setActivities([]);
+          // Note: status is filtered client-side, so we don't pass it to API
+          loadUserActivities(username, 1, filter, mediaType, undefined);
+        }
+      }, 500);
+    }
+    
+    return () => {
+      if (filterDebounceRef.current) {
+        clearTimeout(filterDebounceRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, mediaType, user, username]); // status removed - filtered client-side only
+
+  // Refresh activities with current filters
+  const handleRefreshFilters = useCallback(() => {
+    if (user && username) {
+      // Clear debounce if active
+      if (filterDebounceRef.current) {
+        clearTimeout(filterDebounceRef.current);
+      }
+      // Reset to page 1 and reload
+      // Note: status is filtered client-side, so we don't pass it to API
       setPage(1);
       setActivities([]);
-      loadUserActivities(username, 1, filter, mediaType, status);
+      loadUserActivities(username, 1, filter, mediaType, undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, mediaType, status]); // Reload when filters change
+  }, [user, username, filter, mediaType, loadUserActivities]);
+
+  // Reset filters to default values
+  const handleResetFilters = useCallback(() => {
+    setFilter('all');
+    setMediaType('all');
+    setStatus('all');
+    setSortBy('date');
+    
+    // Reload activities with default filters
+    if (user && username) {
+      // Clear debounce if active
+      if (filterDebounceRef.current) {
+        clearTimeout(filterDebounceRef.current);
+      }
+      setPage(1);
+      setActivities([]);
+      // Note: status is filtered client-side, so we don't pass it to API
+      loadUserActivities(username, 1, 'all', 'all', undefined);
+    }
+  }, [user, username, loadUserActivities]);
 
   // Normalize API status values to dropdown enum values
   const normalizeStatus = (status: string, mediaType?: string): string => {
@@ -742,6 +818,25 @@ export default function ActivitiesPage() {
               <option value="likes">Likes</option>
               <option value="replies">Comments</option>
             </select>
+          </div>
+
+          <div className={styles.filterActions}>
+            <button 
+              onClick={handleRefreshFilters}
+              className={styles.refreshFiltersButton}
+              disabled={loading || !user}
+              title="Refresh activities with current filters"
+            >
+              🔄 Refresh
+            </button>
+            <button 
+              onClick={handleResetFilters}
+              className={styles.resetFiltersButton}
+              disabled={loading || !user}
+              title="Reset all filters to default"
+            >
+              ↺ Reset
+            </button>
           </div>
 
           <div className={styles.stats}>

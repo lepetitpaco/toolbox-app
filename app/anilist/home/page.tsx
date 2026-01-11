@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchUserId, fetchUserActivities, fetchActivityReplies, toggleActivityLike, toggleActivityReplyLike, ActivityStatus, ActivityComment, AniListUser } from '@/lib/anilist';
 import styles from '../anilist.module.css';
@@ -25,8 +25,7 @@ export default function HomePage() {
   const [activities, setActivities] = useState<ActivityStatus[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'list' | 'text' | 'message'>('all');
-  const [mediaType, setMediaType] = useState<'all' | 'anime' | 'manga'>('all');
+  const [filter, setFilter] = useState<'all' | 'list' | 'list-anime' | 'list-manga' | 'text' | 'message'>('all');
   const [status, setStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'likes' | 'replies'>('date');
   const [page, setPage] = useState<number>(1);
@@ -38,6 +37,12 @@ export default function HomePage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [likingActivityId, setLikingActivityId] = useState<number | null>(null);
   const [likingReplyId, setLikingReplyId] = useState<number | null>(null);
+  
+  // Refs for debouncing and preventing duplicate requests
+  const filterDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRequestKeyRef = useRef<string>('');
+  const isRequestInProgressRef = useRef<boolean>(false);
+  const isLoadingFiltersRef = useRef<boolean>(false); // Flag to prevent useEffect during filter loading
 
   // Load saved username, theme, and saved users from localStorage
   useEffect(() => {
@@ -65,7 +70,7 @@ export default function HomePage() {
   }, []);
 
   // Save filters for current user
-  const saveUserFilters = useCallback((userId: number, filters: { filter: string; mediaType: string; status: string; sortBy: string }) => {
+  const saveUserFilters = useCallback((userId: number, filters: { filter: string; status: string; sortBy: string }) => {
     if (typeof window === 'undefined') return;
     
     const savedFilters = localStorage.getItem(USER_FILTERS_KEY);
@@ -91,8 +96,24 @@ export default function HomePage() {
     if (!savedFilters) return null;
     
     try {
-      const allFilters: Record<number, { filter: string; mediaType: string; status: string; sortBy: string }> = JSON.parse(savedFilters);
-      return allFilters[userId] || null;
+      const allFilters: Record<number, { filter: string; status: string; sortBy: string }> = JSON.parse(savedFilters);
+      const saved = allFilters[userId];
+      
+      // Migrate old format (with mediaType) to new format
+      if (saved && 'mediaType' in saved) {
+        const oldSaved = saved as any;
+        if (oldSaved.filter === 'list' && oldSaved.mediaType === 'anime') {
+          saved.filter = 'list-anime';
+        } else if (oldSaved.filter === 'list' && oldSaved.mediaType === 'manga') {
+          saved.filter = 'list-manga';
+        }
+        // Remove mediaType from saved filters
+        delete oldSaved.mediaType;
+        allFilters[userId] = { filter: saved.filter, status: saved.status, sortBy: saved.sortBy };
+        localStorage.setItem(USER_FILTERS_KEY, JSON.stringify(allFilters));
+      }
+      
+      return saved || null;
     } catch (e) {
       console.error('Error parsing saved filters:', e);
       return null;
@@ -146,6 +167,17 @@ export default function HomePage() {
       return;
     }
 
+    // Create a unique key for this request to prevent duplicates
+    // Note: statusFilter is NOT included as it's filtered client-side only
+    const requestKey = `${targetUsername}-${pageNum}-${activityType || 'all'}-${mediaTypeFilter || 'all'}`;
+    
+    // Prevent duplicate requests
+    if (isRequestInProgressRef.current && lastRequestKeyRef.current === requestKey) {
+      return;
+    }
+    
+    isRequestInProgressRef.current = true;
+    lastRequestKeyRef.current = requestKey;
     setLoading(true);
     setError(null);
 
@@ -153,10 +185,8 @@ export default function HomePage() {
       // Step 1: Get user ID
       const userData = await fetchUserId(targetUsername);
       if (!userData) {
-        // Don't set error here if it was already set by the catch block
-        if (!error) {
-          setError(`User "${targetUsername}" not found. Please check the username.`);
-        }
+        setError(`User "${targetUsername}" not found. Please check the username.`);
+        isRequestInProgressRef.current = false;
         setLoading(false);
         return;
       }
@@ -167,21 +197,44 @@ export default function HomePage() {
       saveUserToHistory(userData, targetUsername);
 
       // Load saved filters for this user
+      isLoadingFiltersRef.current = true; // Prevent useEffect from triggering
       const savedFilters = loadUserFilters(userData.id);
       if (savedFilters) {
         setFilter(savedFilters.filter as any);
-        setMediaType(savedFilters.mediaType as any);
         setStatus(savedFilters.status);
         setSortBy(savedFilters.sortBy as any);
       }
+      // Reset flag after a short delay to allow state updates to complete
+      setTimeout(() => {
+        isLoadingFiltersRef.current = false;
+      }, 100);
 
       // Step 2: Fetch activities with filters
-      const typeToFetch = activityType || filter;
-      const mediaTypeToFetch = mediaTypeFilter || mediaType;
-      const statusToFetch = statusFilter || status;
+      // Note: status filtering is done client-side (AniList API doesn't support it)
+      // Parse filter to extract type and mediaType
+      let typeToFetch: 'all' | 'text' | 'list' | 'message' = 'all';
+      let mediaTypeToFetch: 'all' | 'anime' | 'manga' = 'all';
+      
+      if (activityType) {
+        typeToFetch = activityType;
+        mediaTypeToFetch = mediaTypeFilter || 'all';
+      } else if (filter === 'list-anime') {
+        typeToFetch = 'list';
+        mediaTypeToFetch = 'anime';
+      } else if (filter === 'list-manga') {
+        typeToFetch = 'list';
+        mediaTypeToFetch = 'manga';
+      } else if (filter === 'list') {
+        typeToFetch = 'list';
+        mediaTypeToFetch = 'all';
+      } else {
+        typeToFetch = filter;
+      }
+      
+      // statusFilter is NOT passed to API - it's filtered client-side in filteredAndSortedActivities
       // Pass access token if available to get isLiked status
       const token = typeof window !== 'undefined' ? localStorage.getItem('anilist_access_token') : null;
-      const activitiesData = await fetchUserActivities(userData.id, pageNum, 50, typeToFetch, mediaTypeToFetch, statusToFetch, token || undefined);
+      const activitiesData = await fetchUserActivities(userData.id, pageNum, 50, typeToFetch, mediaTypeToFetch, undefined, token || undefined);
       if (!activitiesData) {
         setError('Error loading activities. Check the console for more details.');
         setLoading(false);
@@ -214,9 +267,10 @@ export default function HomePage() {
       }
       console.error('Error:', err);
     } finally {
+      isRequestInProgressRef.current = false;
       setLoading(false);
     }
-  }, [saveUserToHistory, filter, mediaType, status, error]);
+  }, [saveUserToHistory, filter, loadUserFilters]);
 
   // Load user from saved users list
   const loadSavedUser = useCallback((savedUser: SavedUser) => {
@@ -224,13 +278,17 @@ export default function HomePage() {
     saveUsername(savedUser.username);
     
     // Load saved filters for this user
+    isLoadingFiltersRef.current = true; // Prevent useEffect from triggering
     const savedFilters = loadUserFilters(savedUser.id);
     if (savedFilters) {
       setFilter(savedFilters.filter as any);
-      setMediaType(savedFilters.mediaType as any);
       setStatus(savedFilters.status);
       setSortBy(savedFilters.sortBy as any);
     }
+    // Reset flag after a short delay
+    setTimeout(() => {
+      isLoadingFiltersRef.current = false;
+    }, 100);
     
     loadUserActivities(savedUser.username, 1);
   }, [loadUserActivities, saveUsername, loadUserFilters]);
@@ -260,15 +318,116 @@ export default function HomePage() {
   }, []); // Only run once on mount
 
   // Reload activities when filters change (but only if user is already loaded)
+  // Note: status filtering is done client-side, so status changes don't trigger API reload
+  // Use debounce to avoid multiple requests when user changes filters quickly
   useEffect(() => {
+    // Skip if we're loading filters from storage (to avoid duplicate requests)
+    if (isLoadingFiltersRef.current) {
+      return;
+    }
+    
+    if (filterDebounceRef.current) {
+      clearTimeout(filterDebounceRef.current);
+    }
+    
     if (user && username) {
-      // Reset to page 1 when filters change
+      // Debounce filter changes by 500ms to avoid spam
+      filterDebounceRef.current = setTimeout(() => {
+        // Double-check we're not loading filters
+        if (!isLoadingFiltersRef.current) {
+          // Reset to page 1 when filters change
+          setPage(1);
+          setActivities([]);
+          // Parse filter to extract type and mediaType
+          let typeToFetch: 'all' | 'text' | 'list' | 'message' = 'all';
+          let mediaTypeToFetch: 'all' | 'anime' | 'manga' = 'all';
+          
+          if (filter === 'list-anime') {
+            typeToFetch = 'list';
+            mediaTypeToFetch = 'anime';
+          } else if (filter === 'list-manga') {
+            typeToFetch = 'list';
+            mediaTypeToFetch = 'manga';
+          } else if (filter === 'list') {
+            typeToFetch = 'list';
+            mediaTypeToFetch = 'all';
+          } else {
+            typeToFetch = filter;
+          }
+          
+          // Note: status is filtered client-side, so we don't pass it to API
+          loadUserActivities(username, 1, typeToFetch, mediaTypeToFetch, undefined);
+        }
+      }, 500);
+    }
+    
+    return () => {
+      if (filterDebounceRef.current) {
+        clearTimeout(filterDebounceRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, user, username]); // status removed - filtered client-side only
+
+  // Refresh activities with current filters
+  const handleRefreshFilters = useCallback(() => {
+    if (user && username) {
+      // Clear debounce if active
+      if (filterDebounceRef.current) {
+        clearTimeout(filterDebounceRef.current);
+      }
+      // Reset to page 1 and reload
+      // Note: status is filtered client-side, so we don't pass it to API
       setPage(1);
       setActivities([]);
-      loadUserActivities(username, 1, filter, mediaType, status);
+      // Parse filter to extract type and mediaType
+      let typeToFetch: 'all' | 'text' | 'list' | 'message' = 'all';
+      let mediaTypeToFetch: 'all' | 'anime' | 'manga' = 'all';
+      
+      if (filter === 'list-anime') {
+        typeToFetch = 'list';
+        mediaTypeToFetch = 'anime';
+      } else if (filter === 'list-manga') {
+        typeToFetch = 'list';
+        mediaTypeToFetch = 'manga';
+      } else if (filter === 'list') {
+        typeToFetch = 'list';
+        mediaTypeToFetch = 'all';
+      } else {
+        typeToFetch = filter;
+      }
+      
+      loadUserActivities(username, 1, typeToFetch, mediaTypeToFetch, undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, mediaType, status]); // Reload when filters change
+  }, [user, username, filter, loadUserActivities]);
+
+  // Reset filters to default values
+  const handleResetFilters = useCallback(() => {
+    setFilter('all');
+    setMediaType('all');
+    setStatus('all');
+    setSortBy('date');
+    
+    // Save reset filters for current user
+    if (user) {
+      saveUserFilters(user.id, {
+        filter: 'all',
+        status: 'all',
+        sortBy: 'date'
+      });
+    }
+    
+    // Reload activities with default filters
+    if (user && username) {
+      // Clear debounce if active
+      if (filterDebounceRef.current) {
+        clearTimeout(filterDebounceRef.current);
+      }
+      setPage(1);
+      setActivities([]);
+      loadUserActivities(username, 1, 'all', 'all', 'all');
+    }
+  }, [user, username, loadUserActivities, saveUserFilters]);
 
   // Normalize API status values to dropdown enum values
   const normalizeStatus = (status: string, mediaType?: string): string => {
@@ -313,8 +472,16 @@ export default function HomePage() {
       if (filter !== 'all') {
         const activityTypeUpper = activity.type?.toUpperCase() || '';
         
-        if (filter === 'list') {
+        if (filter === 'list' || filter === 'list-anime' || filter === 'list-manga') {
           if (!activityTypeUpper.includes('LIST')) {
+            return false;
+          }
+          
+          // Filter by media type if list-anime or list-manga
+          if (filter === 'list-anime' && activity.media?.type?.toLowerCase() !== 'anime') {
+            return false;
+          }
+          if (filter === 'list-manga' && activity.media?.type?.toLowerCase() !== 'manga') {
             return false;
           }
         } else if (filter === 'text') {
@@ -328,29 +495,19 @@ export default function HomePage() {
         }
       }
       
-      // Filter by mediaType and status if specified (only for ListActivity)
+      // Filter by status if specified (only for ListActivity)
       const isListActivity = activity.type?.toUpperCase().includes('LIST') || false;
       
-      if (isListActivity && (filter === 'list' || filter === 'all')) {
-        // Filter by mediaType if specified
-        if (mediaType !== 'all' && activity.media?.type) {
-          const activityMediaType = activity.media.type.toLowerCase();
-          if (mediaType === 'anime' && activityMediaType !== 'anime') return false;
-          if (mediaType === 'manga' && activityMediaType !== 'manga') return false;
+      if (isListActivity && status !== 'all') {
+        if (!activity.status) {
+          return false;
         }
         
-        // Filter by status if specified
-        if (status !== 'all') {
-          if (!activity.status) {
-            return false;
-          }
-          
-          const normalizedActivityStatus = normalizeStatus(activity.status, activity.media?.type);
-          const filterStatus = String(status).toUpperCase().trim();
-          
-          if (normalizedActivityStatus !== filterStatus) {
-            return false;
-          }
+        const normalizedActivityStatus = normalizeStatus(activity.status, activity.media?.type);
+        const filterStatus = String(status).toUpperCase().trim();
+        
+        if (normalizedActivityStatus !== filterStatus) {
+          return false;
         }
       }
       
@@ -703,18 +860,16 @@ export default function HomePage() {
             <select 
               value={filter} 
               onChange={(e) => {
-                const newFilter = e.target.value as 'all' | 'list' | 'text' | 'message';
+                const newFilter = e.target.value as 'all' | 'list' | 'list-anime' | 'list-manga' | 'text' | 'message';
                 setFilter(newFilter);
-                if (newFilter !== 'list') {
-                  setMediaType('all');
+                if (newFilter !== 'list' && newFilter !== 'list-anime' && newFilter !== 'list-manga') {
                   setStatus('all');
                 }
                 // Save filters when they change
                 if (user) {
                   saveUserFilters(user.id, {
                     filter: newFilter,
-                    mediaType: newFilter !== 'list' ? 'all' : mediaType,
-                    status: newFilter !== 'list' ? 'all' : status,
+                    status: (newFilter === 'list' || newFilter === 'list-anime' || newFilter === 'list-manga') ? status : 'all',
                     sortBy
                   });
                 }
@@ -722,39 +877,11 @@ export default function HomePage() {
               className={styles.filterSelect}
             >
               <option value="all">All</option>
-              <option value="list">List</option>
+              <option value="list">List (All)</option>
+              <option value="list-anime">List (Anime)</option>
+              <option value="list-manga">List (Manga)</option>
               <option value="text">Text</option>
               <option value="message">Message</option>
-            </select>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <label>Media:</label>
-            <select 
-              value={mediaType} 
-              onChange={(e) => {
-                const newMediaType = e.target.value as 'all' | 'anime' | 'manga';
-                setMediaType(newMediaType);
-                // Save filters when they change
-                if (user) {
-                  saveUserFilters(user.id, {
-                    filter,
-                    mediaType: newMediaType,
-                    status,
-                    sortBy
-                  });
-                }
-              }}
-              className={styles.filterSelect}
-              disabled={filter !== 'list'}
-              style={{ 
-                cursor: filter !== 'list' ? 'not-allowed' : 'pointer',
-                pointerEvents: filter !== 'list' ? 'none' : 'auto'
-              }}
-            >
-              <option value="all">All</option>
-              <option value="anime">Anime</option>
-              <option value="manga">Manga</option>
             </select>
           </div>
 
@@ -768,21 +895,20 @@ export default function HomePage() {
                 if (user) {
                   saveUserFilters(user.id, {
                     filter,
-                    mediaType,
                     status: e.target.value,
                     sortBy
                   });
                 }
               }}
               className={styles.filterSelect}
-              disabled={filter !== 'list'}
+              disabled={filter !== 'list' && filter !== 'list-anime' && filter !== 'list-manga'}
               style={{ 
-                cursor: filter !== 'list' ? 'not-allowed' : 'pointer',
-                pointerEvents: filter !== 'list' ? 'none' : 'auto'
+                cursor: (filter === 'list' || filter === 'list-anime' || filter === 'list-manga') ? 'pointer' : 'not-allowed',
+                pointerEvents: (filter === 'list' || filter === 'list-anime' || filter === 'list-manga') ? 'auto' : 'none'
               }}
             >
               <option value="all">All</option>
-              {mediaType === 'all' ? (
+              {(filter === 'list' || filter === 'all') ? (
                 <>
                   <option value="CURRENT">In Progress</option>
                   <option value="PLANNING">Planning</option>
@@ -791,7 +917,7 @@ export default function HomePage() {
                   <option value="PAUSED">Paused</option>
                   <option value="REPEATING">Repeating</option>
                 </>
-              ) : mediaType === 'anime' ? (
+              ) : filter === 'list-anime' ? (
                 <>
                   <option value="CURRENT">Watching</option>
                   <option value="PLANNING">Planning</option>
@@ -824,7 +950,6 @@ export default function HomePage() {
                 if (user) {
                   saveUserFilters(user.id, {
                     filter,
-                    mediaType,
                     status,
                     sortBy: newSortBy
                   });
@@ -836,6 +961,25 @@ export default function HomePage() {
               <option value="likes">Likes</option>
               <option value="replies">Comments</option>
             </select>
+          </div>
+
+          <div className={styles.filterActions}>
+            <button 
+              onClick={handleRefreshFilters}
+              className={styles.refreshFiltersButton}
+              disabled={loading || !user}
+              title="Refresh activities with current filters"
+            >
+              🔄 Refresh
+            </button>
+            <button 
+              onClick={handleResetFilters}
+              className={styles.resetFiltersButton}
+              disabled={loading || !user}
+              title="Reset all filters to default"
+            >
+              ↺ Reset
+            </button>
           </div>
 
           <div className={styles.stats}>
