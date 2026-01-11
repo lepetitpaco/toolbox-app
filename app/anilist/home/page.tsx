@@ -384,6 +384,7 @@ export default function HomePage() {
         
         if (activeDateFilter === 'today') {
           createdAtGreater = Math.floor(todayStart.getTime() / 1000);
+          console.log(`[loadUserActivities] 📅 Date filter: today - createdAt_greater: ${createdAtGreater} (${new Date(createdAtGreater * 1000).toISOString()})`);
         } else if (activeDateFilter === 'yesterday') {
           const yesterdayStart = new Date(todayStart);
           yesterdayStart.setDate(yesterdayStart.getDate() - 1);
@@ -391,24 +392,52 @@ export default function HomePage() {
           yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
           createdAtGreater = Math.floor(yesterdayStart.getTime() / 1000);
           createdAtLesser = Math.floor(yesterdayEnd.getTime() / 1000);
+          console.log(`[loadUserActivities] 📅 Date filter: yesterday - createdAt_greater: ${createdAtGreater} (${new Date(createdAtGreater * 1000).toISOString()}), createdAt_lesser: ${createdAtLesser} (${new Date(createdAtLesser * 1000).toISOString()})`);
         } else if (activeDateFilter === 'week') {
           const weekStart = new Date(todayStart);
           weekStart.setDate(weekStart.getDate() - 7);
           createdAtGreater = Math.floor(weekStart.getTime() / 1000);
+          console.log(`[loadUserActivities] 📅 Date filter: week - createdAt_greater: ${createdAtGreater} (${new Date(createdAtGreater * 1000).toISOString()})`);
         } else if (activeDateFilter === 'month') {
           const monthStart = new Date(todayStart);
           monthStart.setMonth(monthStart.getMonth() - 1);
           createdAtGreater = Math.floor(monthStart.getTime() / 1000);
+          console.log(`[loadUserActivities] 📅 Date filter: month - createdAt_greater: ${createdAtGreater} (${new Date(createdAtGreater * 1000).toISOString()})`);
         } else if (activeDateFilter === 'custom') {
           if (activeCustomStart) {
             const startDate = new Date(activeCustomStart);
+            if (isNaN(startDate.getTime())) {
+              console.error(`[loadUserActivities] ❌ Invalid custom start date: ${activeCustomStart}`);
+              setError(`Invalid start date: ${activeCustomStart}`);
+              setLoading(false);
+              isRequestInProgressRef.current = false;
+              return;
+            }
             startDate.setHours(0, 0, 0, 0);
             createdAtGreater = Math.floor(startDate.getTime() / 1000);
+            console.log(`[loadUserActivities] 📅 Date filter: custom start - createdAt_greater: ${createdAtGreater} (${startDate.toISOString()})`);
           }
           if (activeCustomEnd) {
             const endDate = new Date(activeCustomEnd);
+            if (isNaN(endDate.getTime())) {
+              console.error(`[loadUserActivities] ❌ Invalid custom end date: ${activeCustomEnd}`);
+              setError(`Invalid end date: ${activeCustomEnd}`);
+              setLoading(false);
+              isRequestInProgressRef.current = false;
+              return;
+            }
             endDate.setHours(23, 59, 59, 999);
             createdAtLesser = Math.floor(endDate.getTime() / 1000);
+            console.log(`[loadUserActivities] 📅 Date filter: custom end - createdAt_lesser: ${createdAtLesser} (${endDate.toISOString()})`);
+          }
+          
+          // Validate custom date range
+          if (createdAtGreater !== undefined && createdAtLesser !== undefined && createdAtGreater > createdAtLesser) {
+            console.error(`[loadUserActivities] ❌ Invalid date range: start (${createdAtGreater}) > end (${createdAtLesser})`);
+            setError('Invalid date range: start date must be before end date');
+            setLoading(false);
+            isRequestInProgressRef.current = false;
+            return;
           }
         }
       }

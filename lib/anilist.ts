@@ -506,11 +506,13 @@ export async function fetchUserActivities(
       queryString += `&mediaType=${mediaType}`;
     }
     // Add date filters if specified (Unix timestamps in seconds)
-    if (createdAtGreater !== undefined) {
+    if (createdAtGreater !== undefined && createdAtGreater !== null && !isNaN(createdAtGreater)) {
       queryString += `&createdAt_greater=${createdAtGreater}`;
+      console.log(`[fetchUserActivities] 📅 Adding createdAt_greater: ${createdAtGreater} (${new Date(createdAtGreater * 1000).toISOString()})`);
     }
-    if (createdAtLesser !== undefined) {
+    if (createdAtLesser !== undefined && createdAtLesser !== null && !isNaN(createdAtLesser)) {
       queryString += `&createdAt_lesser=${createdAtLesser}`;
+      console.log(`[fetchUserActivities] 📅 Adding createdAt_lesser: ${createdAtLesser} (${new Date(createdAtLesser * 1000).toISOString()})`);
     }
     // status is NOT passed - must be filtered client-side
     

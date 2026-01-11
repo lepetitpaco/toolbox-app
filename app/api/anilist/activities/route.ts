@@ -83,6 +83,17 @@ export async function GET(request: NextRequest) {
   const mediaType = searchParams.get('mediaType'); // 'anime', 'manga', or null
   const createdAtGreater = searchParams.get('createdAt_greater'); // Unix timestamp (seconds)
   const createdAtLesser = searchParams.get('createdAt_lesser'); // Unix timestamp (seconds)
+  
+  // Log received parameters for debugging
+  console.log('[activities API] 📥 Received parameters:', {
+    userId,
+    page,
+    perPage,
+    activityType,
+    mediaType,
+    createdAtGreater,
+    createdAtLesser
+  });
   const authHeader = request.headers.get('authorization');
 
   if (!userId) {
@@ -114,11 +125,41 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const userIdInt = parseInt(userId, 10);
+    if (isNaN(userIdInt)) {
+      console.error('[activities API] Invalid userId:', userId);
+      return NextResponse.json(
+        { error: 'Invalid userId parameter' },
+        { status: 400 }
+      );
+    }
+    
+    const pageInt = parseInt(page, 10);
+    const perPageInt = parseInt(perPage, 10);
+    
+    if (isNaN(pageInt) || pageInt < 1) {
+      console.error('[activities API] Invalid page:', page);
+      return NextResponse.json(
+        { error: 'Invalid page parameter' },
+        { status: 400 }
+      );
+    }
+    
+    if (isNaN(perPageInt) || perPageInt < 1 || perPageInt > 50) {
+      console.error('[activities API] Invalid perPage:', perPage);
+      return NextResponse.json(
+        { error: 'Invalid perPage parameter (must be between 1 and 50)' },
+        { status: 400 }
+      );
+    }
+    
     const variables: any = {
-      userId: parseInt(userId, 10),
-      page: parseInt(page, 10),
-      perPage: parseInt(perPage, 10),
+      userId: userIdInt,
+      page: pageInt,
+      perPage: perPageInt,
     };
+    
+    console.log('[activities API] 📋 Parsed parameters:', { userId: userIdInt, page: pageInt, perPage: perPageInt, activityType, mediaType });
     
     // Only add type if specified (ANIME_LIST, MANGA_LIST, TEXT, or MESSAGE)
     if (graphQLType) {
@@ -126,17 +167,52 @@ export async function GET(request: NextRequest) {
     }
     
     // Add date filters if specified (Unix timestamps in seconds)
-    if (createdAtGreater) {
-      variables.createdAt_greater = parseInt(createdAtGreater, 10);
+    // Only process if the value is not null, not empty string, and not "undefined"
+    if (createdAtGreater && createdAtGreater !== '' && createdAtGreater !== 'undefined') {
+      const greaterValue = parseInt(createdAtGreater, 10);
+      if (isNaN(greaterValue) || greaterValue < 0) {
+        console.error('[activities API] Invalid createdAt_greater value:', createdAtGreater);
+        return NextResponse.json(
+          { error: 'Invalid createdAt_greater parameter (must be a valid positive integer)' },
+          { status: 400 }
+        );
+      }
+      variables.createdAt_greater = greaterValue;
+      console.log('[activities API] ✅ Added createdAt_greater:', greaterValue, `(${new Date(greaterValue * 1000).toISOString()})`);
     }
-    if (createdAtLesser) {
-      variables.createdAt_lesser = parseInt(createdAtLesser, 10);
+    if (createdAtLesser && createdAtLesser !== '' && createdAtLesser !== 'undefined') {
+      const lesserValue = parseInt(createdAtLesser, 10);
+      if (isNaN(lesserValue) || lesserValue < 0) {
+        console.error('[activities API] Invalid createdAt_lesser value:', createdAtLesser);
+        return NextResponse.json(
+          { error: 'Invalid createdAt_lesser parameter (must be a valid positive integer)' },
+          { status: 400 }
+        );
+      }
+      variables.createdAt_lesser = lesserValue;
+      console.log('[activities API] ✅ Added createdAt_lesser:', lesserValue, `(${new Date(lesserValue * 1000).toISOString()})`);
+    }
+    
+    // Validate that createdAt_greater <= createdAt_lesser if both are set
+    if (variables.createdAt_greater !== undefined && variables.createdAt_lesser !== undefined) {
+      if (variables.createdAt_greater > variables.createdAt_lesser) {
+        console.error('[activities API] Invalid date range: createdAt_greater > createdAt_lesser', {
+          greater: variables.createdAt_greater,
+          lesser: variables.createdAt_lesser
+        });
+        return NextResponse.json(
+          { error: 'Invalid date range: start date must be before end date' },
+          { status: 400 }
+        );
+      }
     }
 
     const requestBody = {
       query: GET_USER_ACTIVITIES,
       variables,
     };
+    
+    console.log('[activities API] 📤 Sending request to AniList with variables:', JSON.stringify(variables, null, 2));
 
     // Build headers with optional authentication
     const headers: HeadersInit = {
@@ -149,6 +225,8 @@ export async function GET(request: NextRequest) {
       headers['Authorization'] = authHeader;
     }
 
+    console.log('[activities API] 📤 Request body:', JSON.stringify(requestBody, null, 2));
+    
     const response = await fetch(ANILIST_API_URL, {
       method: 'POST',
       headers,
@@ -156,6 +234,7 @@ export async function GET(request: NextRequest) {
     });
 
     const responseText = await response.text();
+    console.log('[activities API] 📥 AniList response status:', response.status);
 
     if (!response.ok) {
       console.error(`[activities API] AniList API returned HTTP ${response.status}:`, responseText);
@@ -195,9 +274,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (data.errors) {
-      console.error('[activities API] AniList API errors for activities:', JSON.stringify(data.errors, null, 2));
+      console.error('[activities API] ❌ AniList GraphQL errors:', JSON.stringify(data.errors, null, 2));
+      const errorMessages = data.errors.map((e: any) => e.message || JSON.stringify(e)).join('; ');
       return NextResponse.json(
-        { error: 'API error', details: data.errors },
+        { error: `GraphQL Error: ${errorMessages}`, details: data.errors },
         { status: 400 }
       );
     }
