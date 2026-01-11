@@ -335,6 +335,68 @@ export async function fetchActivityReplies(activityId: number, accessToken?: str
   }
 }
 
+/**
+ * Fetch list activities for a specific user and media.
+ * Returns only ListActivity entries that match the given media ID.
+ */
+export async function fetchUserMediaListActivities(
+  userId: number,
+  mediaId: number,
+  accessToken?: string
+): Promise<ActivityStatus[]> {
+  try {
+    // Determine media type from mediaId (we'll need to fetch it or pass it)
+    // For now, we'll fetch both ANIME_LIST and MANGA_LIST and filter
+    const token = typeof window !== 'undefined' ? localStorage.getItem('anilist_access_token') : null;
+    const authToken = accessToken || token || undefined;
+    
+    // Fetch list activities (both anime and manga)
+    // We'll fetch a reasonable number of pages to find activities for this media
+    const allActivities: ActivityStatus[] = [];
+    let page = 1;
+    let hasNextPage = true;
+    const maxPages = 5; // Limit to 5 pages to avoid too many requests
+    
+    while (hasNextPage && page <= maxPages) {
+      const activitiesData = await fetchUserActivities(
+        userId,
+        page,
+        50,
+        'list',
+        'all',
+        undefined,
+        authToken
+      );
+      
+      if (!activitiesData || activitiesData.activities.length === 0) {
+        break;
+      }
+      
+      // Filter activities that match the media ID
+      const matchingActivities = activitiesData.activities.filter(
+        activity => activity.media?.id === mediaId
+      );
+      
+      allActivities.push(...matchingActivities);
+      
+      // If we found matching activities and there are no more pages, we can stop
+      // Otherwise, continue to next page
+      hasNextPage = activitiesData.pageInfo.hasNextPage;
+      page++;
+      
+      // If we've found enough activities (e.g., 20), we can stop early
+      if (allActivities.length >= 20) {
+        break;
+      }
+    }
+    
+    return allActivities;
+  } catch (error) {
+    console.error('Error fetching user media list activities:', error);
+    return [];
+  }
+}
+
 export async function fetchUserId(username: string): Promise<AniListUser | null> {
   try {
     // Use Next.js API route to avoid CORS issues

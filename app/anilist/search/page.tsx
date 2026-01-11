@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { searchMedia, fetchMediaById, Media, getFollowedUsersScores, UserMediaScore } from '@/lib/anilist';
+import { searchMedia, fetchMediaById, Media, getFollowedUsersScores, UserMediaScore, fetchUserMediaListActivities, ActivityStatus } from '@/lib/anilist';
 import styles from './search.module.css';
 
 const AUTH_TOKEN_KEY = 'anilist_access_token';
@@ -20,6 +20,8 @@ function SearchContent() {
   const [loadingScores, setLoadingScores] = useState<boolean>(false);
   const [hasToken, setHasToken] = useState<boolean>(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
+  const [expandedUserActivities, setExpandedUserActivities] = useState<Record<number, ActivityStatus[]>>({});
+  const [loadingUserActivities, setLoadingUserActivities] = useState<Record<number, boolean>>({});
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -258,6 +260,55 @@ function SearchContent() {
     return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const formatActivityDate = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleViewActivities = async (userId: number, userName: string) => {
+    if (!selectedMedia) return;
+    
+    // Toggle: if already expanded, collapse it
+    if (expandedUserActivities[userId]) {
+      setExpandedUserActivities(prev => {
+        const newState = { ...prev };
+        delete newState[userId];
+        return newState;
+      });
+      return;
+    }
+
+    // Set loading state
+    setLoadingUserActivities(prev => ({ ...prev, [userId]: true }));
+
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+      if (!token) {
+        alert('Please log in to view activities');
+        return;
+      }
+
+      const activities = await fetchUserMediaListActivities(userId, selectedMedia.id, token);
+      
+      setExpandedUserActivities(prev => ({ ...prev, [userId]: activities }));
+    } catch (error: any) {
+      console.error('Error loading activities:', error);
+      alert(`Failed to load activities: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoadingUserActivities(prev => {
+        const newState = { ...prev };
+        delete newState[userId];
+        return newState;
+      });
+    }
+  };
+
   return (
     <div>
       <div className={styles.searchSection}>
@@ -472,33 +523,94 @@ function SearchContent() {
                         // Display scores list
                         <div className={styles.scoresList}>
                           {followedScores.map((score) => (
-                            <div key={score.userId} className={styles.scoreItem}>
-                              {/* User avatar */}
-                              {score.userAvatar && (
-                                <img 
-                                  src={score.userAvatar} 
-                                  alt={score.userName}
-                                  className={styles.scoreAvatar}
-                                />
-                              )}
-                              {/* User info and score details */}
-                              <div className={styles.scoreInfo}>
-                                <span className={styles.scoreUserName}>{score.userName}</span>
-                                <div className={styles.scoreDetails}>
-                                  {/* Score out of 100 */}
-                                  {score.score !== null && score.score !== undefined && (
-                                    <span className={styles.scoreValue}>Score: {score.score}/100</span>
-                                  )}
-                                  {/* Status (CURRENT, PLANNING, COMPLETED, etc.) */}
-                                  {score.status && (
-                                    <span className={styles.scoreStatus}>{score.status}</span>
-                                  )}
-                                  {/* Progress (episode/chapter number) */}
-                                  {score.progress !== null && score.progress !== undefined && (
-                                    <span className={styles.scoreProgress}>Progress: {score.progress}</span>
+                            <div key={score.userId}>
+                              <div className={styles.scoreItem}>
+                                {/* User avatar */}
+                                {score.userAvatar && (
+                                  <img 
+                                    src={score.userAvatar} 
+                                    alt={score.userName}
+                                    className={styles.scoreAvatar}
+                                  />
+                                )}
+                                {/* User info and score details */}
+                                <div className={styles.scoreInfo}>
+                                  <span className={styles.scoreUserName}>{score.userName}</span>
+                                  <div className={styles.scoreDetails}>
+                                    {/* Score out of 100 */}
+                                    {score.score !== null && score.score !== undefined && (
+                                      <span className={styles.scoreValue}>Score: {score.score}/100</span>
+                                    )}
+                                    {/* Status (CURRENT, PLANNING, COMPLETED, etc.) */}
+                                    {score.status && (
+                                      <span className={styles.scoreStatus}>{score.status}</span>
+                                    )}
+                                    {/* Progress (episode/chapter number) */}
+                                    {score.progress !== null && score.progress !== undefined && (
+                                      <span className={styles.scoreProgress}>Progress: {score.progress}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* View activities button */}
+                                <button
+                                  onClick={() => handleViewActivities(score.userId, score.userName)}
+                                  className={styles.viewActivitiesButton}
+                                  disabled={loadingUserActivities[score.userId]}
+                                >
+                                  {loadingUserActivities[score.userId] 
+                                    ? 'Loading...' 
+                                    : expandedUserActivities[score.userId] 
+                                      ? 'Hide Activities' 
+                                      : 'View Activities'}
+                                </button>
+                              </div>
+                              {/* Expanded activities section */}
+                              {expandedUserActivities[score.userId] && (
+                                <div className={styles.userActivitiesSection}>
+                                  {expandedUserActivities[score.userId].length > 0 ? (
+                                    <div className={styles.activitiesList}>
+                                      {expandedUserActivities[score.userId].map((activity) => (
+                                        <div key={activity.id} className={styles.activityItem}>
+                                          <div className={styles.activityHeader}>
+                                            <span className={styles.activityDate}>
+                                              {formatActivityDate(activity.createdAt)}
+                                            </span>
+                                            {activity.status && (
+                                              <span className={styles.activityStatus}>
+                                                {getStatusLabel(activity.status)}
+                                              </span>
+                                            )}
+                                            {activity.progress !== null && activity.progress !== undefined && (
+                                              <span className={styles.activityProgress}>
+                                                Progress: {activity.progress}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {activity.media?.coverImage?.medium && (
+                                            <img 
+                                              src={activity.media.coverImage.medium} 
+                                              alt={activity.media.title?.romaji || ''}
+                                              className={styles.activityMediaImage}
+                                            />
+                                          )}
+                                          <a 
+                                            href={`https://anilist.co/activity/${activity.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={styles.activityLink}
+                                          >
+                                            View on AniList →
+                                          </a>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className={styles.noActivities}>
+                                      No list activities found for this media.
+                                    </div>
                                   )}
                                 </div>
-                              </div>
+                              )}
                             </div>
                           ))}
                         </div>

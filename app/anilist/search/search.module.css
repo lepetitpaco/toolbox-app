@@ -459,6 +459,7 @@
   border-radius: 12px;
   border: 1px solid rgba(102, 126, 234, 0.2);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .scoreItem:hover {
@@ -554,4 +555,162 @@
   background: rgba(255, 193, 7, 0.15);
   border-color: rgba(255, 193, 7, 0.6);
   color: #fbbf24;
+}
+
+.viewActivitiesButton {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.viewActivitiesButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.viewActivitiesButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.userActivitiesSection {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.activitiesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activityItem {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.activityHeader {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.activityDate {
+  color: #666;
+  font-weight: 500;
+}
+
+.activityStatus {
+  padding: 0.25rem 0.75rem;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.activityProgress {
+  color: #666;
+  font-weight: 500;
+}
+
+.activityMediaImage {
+  width: 80px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.activityLink {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.activityLink:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: translateX(4px);
+}
+
+.noActivities {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+/* Dark mode styles */
+:global(.dark-mode) .userActivitiesSection {
+  background: rgba(26, 26, 26, 0.4);
+  border-color: rgba(139, 154, 255, 0.2);
+}
+
+:global(.dark-mode) .activityItem {
+  background: rgba(40, 40, 40, 0.6);
+  border-color: rgba(139, 154, 255, 0.15);
+}
+
+:global(.dark-mode) .activityDate {
+  color: #d0d0d0;
+}
+
+:global(.dark-mode) .activityStatus {
+  background: rgba(139, 154, 255, 0.15);
+  color: #8b9aff;
+}
+
+:global(.dark-mode) .activityProgress {
+  color: #d0d0d0;
+}
+
+:global(.dark-mode) .activityLink {
+  background: rgba(139, 154, 255, 0.15);
+  color: #8b9aff;
+}
+
+:global(.dark-mode) .activityLink:hover {
+  background: rgba(139, 154, 255, 0.25);
+}
+
+:global(.dark-mode) .noActivities {
+  color: #d0d0d0;
 }
