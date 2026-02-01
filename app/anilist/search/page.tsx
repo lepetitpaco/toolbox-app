@@ -24,6 +24,9 @@ function SearchContent() {
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [expandedUserActivities, setExpandedUserActivities] = useState<Record<number, ActivityStatus[]>>({});
   const [loadingUserActivities, setLoadingUserActivities] = useState<Record<number, boolean>>({});
+  const [ownActivities, setOwnActivities] = useState<ActivityStatus[]>([]);
+  const [showOwnActivities, setShowOwnActivities] = useState<boolean>(false);
+  const [loadingOwnActivities, setLoadingOwnActivities] = useState<boolean>(false);
   const { incrementRequestCount } = useApiRequest();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -95,6 +98,9 @@ function SearchContent() {
               setQuery(result.media.title?.userPreferred || result.media.title?.romaji || result.media.title?.english || '');
               setMediaType(result.media.type || 'ALL');
               setFollowedScores(result.scores);
+              // Reset own activities when loading from URL
+              setShowOwnActivities(false);
+              setOwnActivities([]);
             } else {
               console.log('[SearchPage] ⚠️ Media not found');
               showToast('Media not found', 'warning');
@@ -123,6 +129,8 @@ function SearchContent() {
       // No mediaId in URL, clear everything
       setSelectedMedia(null);
       setFollowedScores([]);
+      setShowOwnActivities(false);
+      setOwnActivities([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -209,6 +217,10 @@ function SearchContent() {
     setSelectedMedia(media);
     setShowSuggestions(false);
     setQuery(media.title.userPreferred || media.title.romaji || media.title.english || '');
+    
+    // Reset own activities when media changes
+    setShowOwnActivities(false);
+    setOwnActivities([]);
     
     // Load scores in a single request with media info
     const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
@@ -313,6 +325,50 @@ function SearchContent() {
         delete newState[userId];
         return newState;
       });
+    }
+  };
+
+  const handleViewOwnActivities = async () => {
+    if (!selectedMedia) return;
+    
+    // Toggle: if already shown, hide it
+    if (showOwnActivities) {
+      setShowOwnActivities(false);
+      setOwnActivities([]);
+      return;
+    }
+
+    setLoadingOwnActivities(true);
+
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+      if (!token) {
+        showToast('Please log in to view your activities', 'warning');
+        return;
+      }
+
+      // Get current user ID from localStorage
+      const userStr = typeof window !== 'undefined' ? localStorage.getItem('anilist_user') : null;
+      if (!userStr) {
+        showToast('User information not found. Please log in again.', 'warning');
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      if (!user.id) {
+        showToast('User ID not found. Please log in again.', 'warning');
+        return;
+      }
+
+      const activities = await fetchUserMediaListActivities(user.id, selectedMedia.id, token);
+      
+      setOwnActivities(activities);
+      setShowOwnActivities(true);
+    } catch (error: any) {
+      console.error('Error loading own activities:', error);
+      showToast(`Failed to load activities: ${error.message || 'Unknown error'}`, 'error');
+    } finally {
+      setLoadingOwnActivities(false);
     }
   };
 
@@ -504,7 +560,70 @@ function SearchContent() {
                   */}
                   {hasToken && (
                     <div className={styles.followedScoresSection}>
-                      <h3 className={styles.followedScoresTitle}>Followed Users Scores</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 className={styles.followedScoresTitle}>Followed Users Scores</h3>
+                        <button
+                          onClick={handleViewOwnActivities}
+                          className={styles.viewActivitiesButton}
+                          disabled={loadingOwnActivities}
+                        >
+                          {loadingOwnActivities 
+                            ? 'Loading...' 
+                            : showOwnActivities 
+                              ? 'Hide My Activities' 
+                              : 'Show My Activities'}
+                        </button>
+                      </div>
+                      
+                      {/* User's own activities section */}
+                      {showOwnActivities && (
+                        <div className={styles.userActivitiesSection} style={{ marginBottom: '1.5rem' }}>
+                          <h4 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600, color: '#1a1a1a' }}>My Activities</h4>
+                          {ownActivities.length > 0 ? (
+                            <div className={styles.activitiesList}>
+                              {ownActivities.map((activity) => (
+                                <div key={activity.id} className={styles.activityItem}>
+                                  <div className={styles.activityHeader}>
+                                    <span className={styles.activityDate}>
+                                      {formatActivityDate(activity.createdAt)}
+                                    </span>
+                                    {activity.status && (
+                                      <span className={styles.activityStatus}>
+                                        {getStatusLabel(activity.status)}
+                                      </span>
+                                    )}
+                                    {activity.progress !== null && activity.progress !== undefined && (
+                                      <span className={styles.activityProgress}>
+                                        Progress: {activity.progress}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {activity.media?.coverImage?.medium && (
+                                    <img 
+                                      src={activity.media.coverImage.medium} 
+                                      alt={activity.media.title?.romaji || ''}
+                                      className={styles.activityMediaImage}
+                                      loading="lazy"
+                                    />
+                                  )}
+                                  <a 
+                                    href={`https://anilist.co/activity/${activity.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.activityLink}
+                                  >
+                                    View on AniList →
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className={styles.noActivities}>
+                              No list activities found for this media.
+                            </div>
+                          )}
+                        </div>
+                      )}
                       
                       {/* Error message (e.g., expired token) */}
                       {tokenError ? (

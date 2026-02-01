@@ -714,3 +714,7 @@
 :global(.dark-mode) .noActivities {
   color: #d0d0d0;
 }
+
+:global(.dark-mode) .followedScoresSection h4 {
+  color: #ffffff;
+}
