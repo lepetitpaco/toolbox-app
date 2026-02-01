@@ -1,249 +1,330 @@
 .page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+.topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.editHint {
+  font-size: 0.875rem;
+  color: #667eea;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.time {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.editButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #667eea;
+  background: rgba(255, 255, 255, 0.9);
+  color: #667eea;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.editButton:hover {
+  background: #667eea;
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.editButton.active {
+  background: #667eea;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .main {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 3rem;
-  color: white;
-}
-
-.title {
-  font-size: 3rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.subtitle {
-  font-size: 1.25rem;
-  opacity: 0.9;
-  font-weight: 300;
-}
-
-.toolsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 1.5rem;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.toolCard {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  color: inherit;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  height: calc(100vh - 60px);
+  padding-top: 60px;
   position: relative;
   overflow: hidden;
 }
 
-.toolHeader {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
+.appsContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-.toolCard::before {
+.appWrapper {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  transition: transform 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.appWrapper.editing {
+  cursor: move;
+}
+
+.appWrapper.editing:active {
+  cursor: grabbing;
+  z-index: 1000;
+}
+
+.appWrapper.editing .appIconContainer {
+  opacity: 0.9;
+}
+
+.appWrapper.editing:active .appIconContainer {
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.appWrapper.editing {
+  z-index: 10;
+}
+
+.appWrapper.editing:active {
+  z-index: 100;
+}
+
+.appIcon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+  touch-action: none;
+}
+
+.appWrapper.editing .appIcon {
+  cursor: grab;
+}
+
+.appWrapper.editing .appIcon:active {
+  cursor: grabbing;
+}
+
+.appWrapper:not(.editing) .appIcon:hover {
+  transform: translateY(-4px) scale(1.05);
+}
+
+.appWrapper:not(.editing) .appIcon:active {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.appIconContainer {
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.appWrapper.editing .appIconContainer {
+  cursor: grab;
+}
+
+.appWrapper.editing .appIconContainer:active {
+  cursor: grabbing;
+}
+
+.appWrapper:not(.editing) .appIcon:hover .appIconContainer {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+.appIconContainer::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.3s ease;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.toolCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+.appWrapper:not(.editing) .appIcon:hover .appIconContainer::before {
+  opacity: 1;
 }
 
-.toolCard:hover::before {
-  transform: scaleX(1);
+.appIconEmoji {
+  line-height: 1;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.toolCard:hover .toolArrow {
-  transform: translateX(4px);
+.appWrapper:not(.editing) .appIcon:hover .appIconEmoji {
+  transform: scale(1.1);
 }
 
-.toolIcon {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
-.toolContent {
-  flex: 1;
-}
-
-.toolTitle {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+.appName {
+  font-weight: 500;
   color: #1a1a1a;
-}
-
-.toolDescription {
-  font-size: 0.95rem;
-  color: #666;
-  line-height: 1.5;
-}
-
-.toolArrow {
-  align-self: flex-end;
-  font-size: 1.5rem;
-  color: #667eea;
-  transition: transform 0.3s ease;
-  font-weight: 600;
-}
-
-.featuresList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 0.5rem;
-}
-
-.featureItem {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(102, 126, 234, 0.05);
-  border-radius: 12px;
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(102, 126, 234, 0.1);
-}
-
-.featureItem:hover {
-  background: rgba(102, 126, 234, 0.1);
-  border-color: rgba(102, 126, 234, 0.3);
-  transform: translateX(4px);
-}
-
-.featureItem:hover .featureArrow {
-  transform: translateX(4px);
-}
-
-.featureIcon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.featureContent {
-  flex: 1;
-}
-
-.featureName {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  color: #1a1a1a;
-}
-
-.featureDescription {
-  font-size: 0.9rem;
-  color: #666;
-  line-height: 1.4;
-}
-
-.featureArrow {
-  font-size: 1.25rem;
-  color: #667eea;
-  transition: transform 0.3s ease;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.empty {
   text-align: center;
-  padding: 3rem;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  color: #666;
+  line-height: 1.2;
+  word-wrap: break-word;
+  transition: color 0.2s ease;
+  max-width: 100%;
+}
+
+.appWrapper:not(.editing) .appIcon:hover .appName {
+  color: #667eea;
+}
+
+.resizeHandle {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  background: #667eea;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.resizeHandle:hover {
+  transform: scale(1.2);
+  background: #5568d3;
 }
 
 @media (max-width: 768px) {
-  .page {
-    padding: 1rem;
+  .topBar {
+    padding: 0 1rem;
+    height: 50px;
   }
 
-  .title {
-    font-size: 2rem;
+  .time {
+    font-size: 1.25rem;
   }
 
-  .subtitle {
+  .editButton {
+    width: 36px;
+    height: 36px;
     font-size: 1rem;
   }
 
-  .toolsGrid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .toolCard {
-    padding: 1.25rem;
+  .main {
+    padding-top: 50px;
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  .toolCard {
-    background: rgba(26, 26, 26, 0.95);
+  .page {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
   }
 
-  .toolTitle {
+  .topBar {
+    background: rgba(26, 26, 26, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .time {
     color: #ededed;
   }
 
-  .toolDescription {
-    color: #999;
+  .editButton {
+    background: rgba(26, 26, 26, 0.9);
+    border-color: #8b9aff;
+    color: #8b9aff;
   }
 
-  .featureItem {
-    background: rgba(102, 126, 234, 0.1);
-    border-color: rgba(102, 126, 234, 0.2);
+  .editButton:hover {
+    background: #8b9aff;
+    color: #1a1a1a;
   }
 
-  .featureItem:hover {
-    background: rgba(102, 126, 234, 0.15);
-    border-color: rgba(102, 126, 234, 0.3);
+  .editButton.active {
+    background: #8b9aff;
+    color: #1a1a1a;
   }
 
-  .featureName {
+  .appName {
     color: #ededed;
   }
 
-  .featureDescription {
-    color: #999;
+  .appWrapper:not(.editing) .appIcon:hover .appName {
+    color: #8b9aff;
   }
 
-  .empty {
-    background: rgba(26, 26, 26, 0.95);
-    color: #999;
+  .appIconContainer {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .appWrapper:not(.editing) .appIcon:hover .appIconContainer {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 }
