@@ -1,0 +1,705 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 2rem;
+  padding-top: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding: 1rem 0;
+}
+
+.backButton {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.backButton:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateX(-2px);
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.editButton,
+.addButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.editButton:hover,
+.addButton:hover {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: rgba(102, 126, 234, 0.5);
+  transform: scale(1.1);
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.emptyContent {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.emptyText {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.emptyButton {
+  padding: 0.75rem 2rem;
+  background: #667eea;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.emptyButton:hover {
+  background: #5568d3;
+  transform: scale(1.05);
+}
+
+.citiesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.cityCard {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cityCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cityCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.cityCard:hover::before {
+  opacity: 1;
+}
+
+.cityCard.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  cursor: grabbing;
+}
+
+.cityCard.dragOver {
+  border: 2px dashed #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.loading,
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  gap: 1rem;
+}
+
+.error {
+  color: #ef4444;
+}
+
+.errorIcon {
+  font-size: 3rem;
+}
+
+.errorActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.editCityButton,
+.removeButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.removeButton {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.editCityButton:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
+.removeButton:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.cityHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.location {
+  flex: 1;
+}
+
+.cityName {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem 0;
+}
+
+.country {
+  font-size: 1rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.headerButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.iconButton:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.1);
+}
+
+.externalLink {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  font-size: 1rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.externalLink:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.1);
+}
+
+.mainWeather {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 2rem 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  margin-left: -2rem;
+  margin-right: -2rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  border-radius: 16px;
+}
+
+.temperature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.temp {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #1a1a1a;
+}
+
+.feelsLike {
+  font-size: 1rem;
+  color: #666;
+}
+
+.condition {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.icon {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.text {
+  font-size: 1.1rem;
+  color: #666;
+  text-align: right;
+  text-transform: capitalize;
+}
+
+.details {
+  margin-bottom: 2rem;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.detailCard {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.detailCard:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
+  border-color: rgba(102, 126, 234, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.detailLabel {
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.detailValue {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.tomorrow {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.forecast {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  height: 100%;
+}
+
+.forecastTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+}
+
+.forecastList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.forecastDay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.forecastDay:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateX(4px);
+}
+
+.forecastDayHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 120px;
+}
+
+.forecastDayName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  text-transform: capitalize;
+}
+
+.forecastDayIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.forecastDayTemp {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 80px;
+}
+
+.forecastMax {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.forecastMin {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.forecastDayDetails {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex: 1;
+  text-align: right;
+}
+
+.forecastCondition {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.forecastMeta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.tomorrowTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+}
+
+.tomorrowContent {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tomorrowIcon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.tomorrowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.tomorrowTemp {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.tomorrowCondition {
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.indicators {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  display: inline-flex;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(102, 126, 234, 0.3);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.indicator:hover {
+  background: rgba(102, 126, 234, 0.5);
+  transform: scale(1.2);
+}
+
+.indicator.active {
+  background: #667eea;
+  width: 24px;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .citiesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cityCard {
+    padding: 1.5rem;
+  }
+
+  .temp {
+    font-size: 3rem;
+  }
+
+  .icon {
+    font-size: 3rem;
+  }
+
+  .details {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .detailsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .forecastDay {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .forecastDayHeader {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .forecastDayTemp {
+    min-width: auto;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  }
+
+  .backButton {
+    background: rgba(26, 26, 26, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ededed;
+  }
+
+  .backButton:hover {
+    background: rgba(26, 26, 26, 1);
+  }
+
+  .title {
+    color: #ededed;
+  }
+
+  .emptyContent {
+    background: rgba(26, 26, 26, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .emptyText {
+    color: #999;
+  }
+
+  .cityCard {
+    background: rgba(26, 26, 26, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .cityName,
+  .temp,
+  .detailValue,
+  .tomorrowTemp {
+    color: #ededed;
+  }
+
+  .country,
+  .feelsLike,
+  .text,
+  .detailLabel,
+  .tomorrowCondition {
+    color: #999;
+  }
+
+  .mainWeather {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .detailCard {
+    background: rgba(139, 154, 255, 0.05);
+    border-color: rgba(139, 154, 255, 0.1);
+  }
+
+  .tomorrow {
+    background: rgba(139, 154, 255, 0.05);
+    border-color: rgba(139, 154, 255, 0.1);
+  }
+
+  .editButton,
+  .addButton,
+  .iconButton,
+  .externalLink {
+    border-color: rgba(139, 154, 255, 0.3);
+    background: rgba(139, 154, 255, 0.1);
+    color: #8b9aff;
+  }
+
+  .editButton:hover,
+  .addButton:hover,
+  .iconButton:hover,
+  .externalLink:hover {
+    background: rgba(139, 154, 255, 0.2);
+  }
+
+  .indicators {
+    background: rgba(26, 26, 26, 0.5);
+  }
+
+  .indicator {
+    background: rgba(139, 154, 255, 0.3);
+  }
+
+  .indicator:hover {
+    background: rgba(139, 154, 255, 0.5);
+  }
+
+  .indicator.active {
+    background: #8b9aff;
+  }
+}
