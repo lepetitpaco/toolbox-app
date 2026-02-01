@@ -117,8 +117,8 @@ A Next.js application providing various tools and utilities, including AniList i
 
 ### Prerequisites
 
-- Node.js 20+
-- Docker & Docker Compose (optional, for containerized development)
+- **Docker** and **Docker Compose** installed
+- **Git** installed (for cloning the repository)
 - An external Docker network named `infra_net` (optional, for database connection)
 - AniList OAuth credentials (optional, for login feature):
   - Go to [AniList Developer Settings](https://anilist.co/settings/developer)
@@ -126,23 +126,23 @@ A Next.js application providing various tools and utilities, including AniList i
   - Set the redirect URI to: `http://localhost:3000/api/anilist/auth/callback` (or your production URL)
   - Copy your `Client ID` and `Client Secret`
 - WeatherAPI.com API key (optional, for enhanced weather features):
-  - See [WEATHER_API_SETUP.md](./WEATHER_API_SETUP.md) for details
+  - See [WeatherAPI.com Setup](#weatherapicom-setup) section below
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd toolbox-app
 ```
 
-2. Install dependencies:
+2. **Update the repository (if already cloned):**
 ```bash
-npm install
+git pull
 ```
 
-3. Configure environment variables:
-   - Create a `.env` file in the project root:
+3. **Configure environment variables (optional):**
+   - Create a `.env` file from `env.example`:
      ```bash
      cp env.example .env
      ```
@@ -157,21 +157,33 @@ npm install
      WEATHER_API_KEY=your_weatherapi_key_here
      ```
 
-### Development
+4. **Create Docker network (if needed):**
+```bash
+docker network create infra_net
+```
 
-#### Using Docker (Recommended)
-
-1. **Start the development container:**
+5. **Start the project:**
 ```bash
 docker-compose up -d
 ```
 
-2. **View logs:**
+### Development
+
+#### Using Docker
+
+**Start the project:**
 ```bash
+docker-compose up -d
+```
+
+**View logs:**
+```bash
+docker-compose logs -f
+# or
 docker logs toolbox_web -f
 ```
 
-3. **Access the application:**
+**Access the application:**
 - Homepage: http://localhost:3000
 - AniList Home: http://localhost:3000/anilist/home
 - AniList Search: http://localhost:3000/anilist/search
@@ -182,22 +194,30 @@ docker logs toolbox_web -f
 - Date Calculator: http://localhost:3000/date-calculator
 - File Diff: http://localhost:3000/file-diff
 - Formatter: http://localhost:3000/formatter
+- Settings: http://localhost:3000/settings
 
-4. **Stop the container:**
+**Stop the container:**
 ```bash
 docker-compose down
 ```
 
 #### Local Development (without Docker)
 
-1. **Start the development server:**
+**Note:** This project is designed to run with Docker. For local development without Docker, you'll need Node.js 20+ installed.
+
+1. **Install dependencies:**
+```bash
+npm install
+```
+
+2. **Start the development server:**
 ```bash
 npm run dev
 # or with Webpack (for better hot reload)
 npm run dev:webpack
 ```
 
-2. **Access the application:**
+3. **Access the application:**
 - http://localhost:3000
 
 ### Docker Commands
@@ -236,6 +256,22 @@ docker exec -it toolbox_web sh
 #### Check if container is running
 ```bash
 docker ps | grep toolbox_web
+```
+
+#### View running containers
+```bash
+docker ps
+```
+
+#### Access container shell
+```bash
+docker exec -it toolbox_web sh
+```
+
+#### Clean up (remove containers, images, volumes)
+```bash
+docker-compose down -v
+docker system prune -a
 ```
 
 ## Hot Reload
@@ -329,9 +365,7 @@ toolbox-app/
 ├── docker-compose.yml
 ├── Dockerfile
 ├── env.example
-├── README.md
-├── DEPLOYMENT.md             # Deployment guide
-└── WEATHER_API_SETUP.md      # WeatherAPI.com setup guide
+└── README.md
 ```
 
 ## API Endpoints
@@ -375,21 +409,117 @@ The application uses the following environment variables:
 - `ANILIST_REDIRECT_URI` - OAuth redirect URI (default: `http://localhost:3000/api/anilist/auth/callback`)
 
 ### WeatherAPI.com (Optional)
-- `WEATHER_API_KEY` - Your WeatherAPI.com API key (see [WEATHER_API_SETUP.md](./WEATHER_API_SETUP.md))
+- `WEATHER_API_KEY` - Your WeatherAPI.com API key
+
+## WeatherAPI.com Setup
+
+The application uses **WeatherAPI.com** (https://www.weatherapi.com/) for weather data and city search.
+
+### Why WeatherAPI.com?
+
+- ✅ **City search**: Uses WeatherAPI.com Search/Autocomplete API for precise location matching with ID support
+- ✅ **Detailed forecasts**: 5-day forecasts with complete data
+- ✅ **French support**: All descriptions in French
+- ✅ **Automatic fallback**: If no API key, uses Nominatim (OpenStreetMap) for search and wttr.in for weather data
+
+### Getting a Free API Key
+
+1. Go to https://www.weatherapi.com/
+2. Click **"Sign Up"** (free) or log in at https://www.weatherapi.com/my/
+3. Create a free account
+4. Go to your dashboard to see your API key
+5. Copy your API key
+
+### Configuration
+
+1. Create or edit your `.env` file:
+   ```bash
+   cp env.example .env
+   ```
+
+2. Add your API key in `.env`:
+   ```env
+   WEATHER_API_KEY=your_weatherapi_key_here
+   ```
+
+3. Restart Docker containers:
+   ```bash
+   docker-compose restart
+   ```
+
+### Free Plan Limits
+
+- ✅ **1,000,000 calls/month**
+- ✅ Sufficient for personal use
+
+### Without API Key
+
+If you don't add an API key, the application will automatically use **wttr.in** for weather data and **Nominatim** for city search. Everything will work, but with fewer search features.
+
+## Troubleshooting
+
+### Port 3000 is already in use
+
+Modify the port in `docker-compose.yml`:
+```yaml
+ports:
+  - "3001:3000"  # Change 3001 to your preferred port
+```
+
+### Hot reload not working
+
+Make sure the environment variables `CHOKIDAR_*` and `WATCHPACK_*` are properly defined in `docker-compose.yml`.
+
+### Docker network error
+
+If you get an error about `infra_net`, create the network:
+```bash
+docker network create infra_net
+```
+
+### Permission issues (Linux/Mac)
+
+If you have permission issues with volumes, adjust permissions:
+```bash
+sudo chown -R $USER:$USER .
+```
+
+### Option: Without PostgreSQL database
+
+If you don't need the database, modify `docker-compose.yml`:
+1. Remove the reference to the external network `infra_net`
+2. Remove the `DATABASE_URL` variable or set it to a default value
+3. Remove the `networks` section
 
 ## Building for Production
 
-```bash
-npm run build
-npm start
+For production deployment with Docker:
+
+1. **Modify the Dockerfile** to build the application:
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/package*.json ./
+RUN npm install --production
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+EXPOSE 3000
+CMD ["npm", "start"]
 ```
 
-For Docker production deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+2. **Modify `docker-compose.yml`** to use `npm start` instead of `npm run dev:webpack`:
+```yaml
+command: npm start
+```
 
-## Documentation
-
-- [DEPLOYMENT.md](./DEPLOYMENT.md) - Docker deployment guide
-- [WEATHER_API_SETUP.md](./WEATHER_API_SETUP.md) - WeatherAPI.com setup instructions
+3. **Configure production environment variables** in `.env`
 
 ## License
 
