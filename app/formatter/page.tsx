@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Link from 'next/link';
 import styles from './formatter.module.css';
 
 type Language = 'json' | 'javascript' | 'typescript' | 'html' | 'css' | 'python' | 'xml' | 'sql' | 'yaml' | 'twig' | 'php';
@@ -401,6 +402,9 @@ export default function FormatterPage() {
 
   return (
     <div className={styles.container}>
+      <Link href="/" className={styles.backButton}>
+        ← Retour
+      </Link>
       <h1 className={styles.title}>✨ Formateur de Code</h1>
 
       <div className={styles.controls}>

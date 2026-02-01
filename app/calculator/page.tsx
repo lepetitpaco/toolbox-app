@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import styles from './calculator.module.css';
 import Window from './components/Window';
 
@@ -606,6 +607,9 @@ export default function CalculatorPage() {
 
   return (
     <div className={styles.container} ref={containerRef}>
+      <Link href="/" className={styles.backButton}>
+        ← Retour
+      </Link>
       {/* Mode switcher */}
       <div className={styles.modeSwitcher}>
         <button

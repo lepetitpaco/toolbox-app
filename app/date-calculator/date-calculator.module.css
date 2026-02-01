@@ -7,6 +7,37 @@
   overflow-x: hidden;
 }
 
+.backButton {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.backButton:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateX(-2px);
+}
+
+:global(.dark-mode) .backButton {
+  background: rgba(26, 26, 26, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+:global(.dark-mode) .backButton:hover {
+  background: rgba(26, 26, 26, 1);
+}
+
 .container::before {
   content: '';
   position: fixed;

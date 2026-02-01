@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import styles from './file-diff.module.css';
 
 interface DiffLine {
@@ -143,6 +144,9 @@ export default function FileDiffPage() {
 
   return (
     <div className={styles.container}>
+      <Link href="/" className={styles.backButton}>
+        ← Retour
+      </Link>
       <h1 className={styles.title}>📊 Diff de Fichiers</h1>
 
       <div className={styles.controls}>

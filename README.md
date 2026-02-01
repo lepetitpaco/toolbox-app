@@ -1,10 +1,15 @@
 # Toolbox App
 
-A Next.js application providing various tools and utilities, with a comprehensive AniList integration.
+A Next.js application providing various tools and utilities, including AniList integration, weather forecasts, calculators, and more.
 
 ## Features
 
-### AniList Tools
+### 🏠 Homepage
+- **Customizable app launcher** with draggable app icons
+- **Persistent layout** saved in localStorage
+- **Multiple tools** accessible from the main page
+
+### 📺 AniList Tools
 
 #### Home Page (`/anilist/home`)
 - **View user activities** from AniList with full comment threads
@@ -47,12 +52,63 @@ A Next.js application providing various tools and utilities, with a comprehensiv
 - **Dark mode support** with smooth transitions
 - **Theme preferences** saved in localStorage
 
+### 🌤️ Weather (`/meteo`)
+- **Multi-city weather forecasts** with drag-and-drop reordering
+- **5-day detailed forecasts** with hourly data
+- **City search** using WeatherAPI.com Search API with precise location matching
+- **Current conditions** including temperature, humidity, wind, pressure, visibility
+- **Sunrise/sunset times** and astronomy data
+- **Direct links** to WeatherAPI.com detailed weather pages
+- **Persistent city list** saved in localStorage
+- **Auto-refresh** every 10 minutes
+- **Fallback support** to wttr.in if API key is not configured
+
+### ⏰ Countdown Timer (`/countdown`)
+- **Custom countdown timers** to specific dates and times
+- **Visual countdown display** with days, hours, minutes, seconds
+- **Multiple timers** support
+- **Persistent timers** saved in localStorage
+
+### 🔐 Encoder/Decoder (`/encoder`)
+- **Base64 encoding/decoding**
+- **URL encoding/decoding**
+- **HTML entity encoding/decoding**
+- **Copy to clipboard** functionality
+
+### 📝 Calculator (`/calculator`)
+- **Scientific calculator** with advanced functions
+- **Expression evaluation**
+- **History of calculations**
+- **Keyboard shortcuts** support
+
+### 📅 Date Calculator (`/date-calculator`)
+- **Calculate difference** between two dates
+- **Add/subtract** days, weeks, months, years to/from a date
+- **Multiple date formats** support
+- **Timezone handling**
+
+### 📊 File Diff (`/file-diff`)
+- **Compare two text files** or text blocks
+- **Side-by-side diff view** with syntax highlighting
+- **Line-by-line comparison** with added/removed indicators
+- **Export diff results**
+
+### ✨ Formatter (`/formatter`)
+- **JSON formatting** and validation
+- **XML formatting**
+- **Code beautification**
+- **Minification** support
+
 ## Tech Stack
 
 - **Framework**: Next.js 16.1.1 (App Router)
 - **Language**: TypeScript
 - **Styling**: CSS Modules with CSS Variables for theming
-- **API**: AniList GraphQL API
+- **APIs**:
+  - AniList GraphQL API
+  - WeatherAPI.com (weather data and city search)
+  - Nominatim/OpenStreetMap (fallback for city search)
+  - wttr.in (fallback for weather data)
 - **Authentication**: OAuth2
 - **Storage**: localStorage for preferences and cache
 - **Containerization**: Docker & Docker Compose
@@ -62,13 +118,15 @@ A Next.js application providing various tools and utilities, with a comprehensiv
 ### Prerequisites
 
 - Node.js 20+
-- Docker & Docker Compose
-- An external Docker network named `infra_net` (for database connection)
-- AniList OAuth credentials (for login feature):
+- Docker & Docker Compose (optional, for containerized development)
+- An external Docker network named `infra_net` (optional, for database connection)
+- AniList OAuth credentials (optional, for login feature):
   - Go to [AniList Developer Settings](https://anilist.co/settings/developer)
   - Create a new application
   - Set the redirect URI to: `http://localhost:3000/api/anilist/auth/callback` (or your production URL)
   - Copy your `Client ID` and `Client Secret`
+- WeatherAPI.com API key (optional, for enhanced weather features):
+  - See [WEATHER_API_SETUP.md](./WEATHER_API_SETUP.md) for details
 
 ### Installation
 
@@ -83,14 +141,20 @@ cd toolbox-app
 npm install
 ```
 
-3. Configure AniList OAuth (optional, required for login feature):
+3. Configure environment variables:
    - Create a `.env` file in the project root:
      ```bash
      cp env.example .env
-     # Edit .env and add your credentials:
-     # ANILIST_CLIENT_ID=your_client_id_here
-     # ANILIST_CLIENT_SECRET=your_client_secret_here
-     # ANILIST_REDIRECT_URI=http://localhost:3000/api/anilist/auth/callback
+     ```
+   - Edit `.env` and add your credentials (all optional):
+     ```env
+     # AniList OAuth (optional)
+     ANILIST_CLIENT_ID=your_client_id_here
+     ANILIST_CLIENT_SECRET=your_client_secret_here
+     ANILIST_REDIRECT_URI=http://localhost:3000/api/anilist/auth/callback
+     
+     # WeatherAPI.com (optional)
+     WEATHER_API_KEY=your_weatherapi_key_here
      ```
 
 ### Development
@@ -111,6 +175,13 @@ docker logs toolbox_web -f
 - Homepage: http://localhost:3000
 - AniList Home: http://localhost:3000/anilist/home
 - AniList Search: http://localhost:3000/anilist/search
+- Weather: http://localhost:3000/meteo
+- Countdown: http://localhost:3000/countdown
+- Encoder: http://localhost:3000/encoder
+- Calculator: http://localhost:3000/calculator
+- Date Calculator: http://localhost:3000/date-calculator
+- File Diff: http://localhost:3000/file-diff
+- Formatter: http://localhost:3000/formatter
 
 4. **Stop the container:**
 ```bash
@@ -180,8 +251,8 @@ The application is configured to use Webpack instead of Turbopack for better hot
 
 ### Testing Hot Reload
 
-1. Open http://localhost:3000/anilist/home
-2. Modify a file (e.g., `app/anilist/home/page.tsx`)
+1. Open http://localhost:3000
+2. Modify a file (e.g., `app/page.tsx`)
 3. Save the file
 4. Wait 1-2 seconds
 5. Refresh the page (F5) - changes should appear
@@ -190,7 +261,7 @@ The application is configured to use Webpack instead of Turbopack for better hot
 
 #### Check file mounting
 ```bash
-docker exec toolbox_web ls -la /app/app/anilist/
+docker exec toolbox_web ls -la /app/app/
 ```
 
 #### Monitor logs
@@ -220,23 +291,37 @@ toolbox-app/
 │   ├── anilist/              # AniList integration
 │   │   ├── home/             # Home page (activities)
 │   │   │   └── page.tsx
-│   │   ├── search/             # Search page (media search)
+│   │   ├── search/           # Search page (media search)
 │   │   │   └── page.tsx
 │   │   ├── layout.tsx        # Shared layout with header
 │   │   ├── page.tsx          # Redirect to /anilist/home
 │   │   └── anilist.module.css
 │   ├── api/
-│   │   └── anilist/          # AniList API routes
-│   │       ├── activities/   # Get user activities
-│   │       ├── activity-like/ # Like/unlike activities
-│   │       ├── auth/         # OAuth authentication
-│   │       ├── callback/     # OAuth callback
-│   │       ├── following/    # Get followed users
-│   │       ├── media/        # Get media by ID
-│   │       ├── media-scores/ # Get followed users' scores
-│   │       ├── replies/      # Get activity replies
-│   │       ├── search/       # Search media
-│   │       └── user/         # Get user info
+│   │   ├── anilist/          # AniList API routes
+│   │   │   ├── activities/   # Get user activities
+│   │   │   ├── activity-like/ # Like/unlike activities
+│   │   │   ├── auth/         # OAuth authentication
+│   │   │   ├── callback/     # OAuth callback
+│   │   │   ├── following/    # Get followed users
+│   │   │   ├── media/        # Get media by ID
+│   │   │   ├── media-scores/ # Get followed users' scores
+│   │   │   ├── replies/      # Get activity replies
+│   │   │   ├── search/       # Search media
+│   │   │   └── user/         # Get user info
+│   │   ├── cities/           # City search API
+│   │   │   └── search/       # Search cities (WeatherAPI/Nominatim)
+│   │   └── weather/          # Weather API
+│   │       └── route.ts      # Get weather data (WeatherAPI/wttr.in)
+│   ├── calculator/           # Calculator tool
+│   ├── components/          # Shared components
+│   │   ├── CitySearch.tsx   # City search component
+│   │   └── CitySearchModal.tsx
+│   ├── countdown/            # Countdown timer
+│   ├── date-calculator/      # Date calculator
+│   ├── encoder/              # Encoder/decoder
+│   ├── file-diff/            # File diff tool
+│   ├── formatter/            # Code formatter
+│   ├── meteo/                # Weather forecast
 │   ├── page.tsx              # Homepage
 │   └── layout.tsx
 ├── lib/
@@ -244,12 +329,14 @@ toolbox-app/
 ├── docker-compose.yml
 ├── Dockerfile
 ├── env.example
-└── README.md
+├── README.md
+├── DEPLOYMENT.md             # Deployment guide
+└── WEATHER_API_SETUP.md      # WeatherAPI.com setup guide
 ```
 
-## AniList Integration
+## API Endpoints
 
-### API Endpoints
+### AniList API Routes
 
 The application uses Next.js API routes to proxy AniList GraphQL requests:
 
@@ -264,111 +351,18 @@ The application uses Next.js API routes to proxy AniList GraphQL requests:
 - `/api/anilist/auth` - Initiate OAuth login
 - `/api/anilist/auth/callback` - Handle OAuth callback
 
-### Filtering Logic
+### Weather API Routes
 
-#### Activity Type Filter
-- **Server-side**: Filters by `TEXT`, `MESSAGE`, `ANIME_LIST`, or `MANGA_LIST` in GraphQL query
-- **Combined filters**: `list-anime` and `list-manga` combine type and media type for single API call
-- **Client-side**: Additional filtering for status (not supported by API)
-
-#### Status Filter
-- **Client-side only**: AniList API doesn't support status filtering directly
-- **Normalization**: API returns text values (`"watched episode"`, `"read chapter"`, etc.) which are normalized to enum values (`"CURRENT"`, `"PLANNING"`, etc.)
-- **No API reload**: Status changes don't trigger API requests (filtered on already-loaded activities)
-
-#### Status Normalization
-
-The application normalizes AniList API status values:
-
-| API Value | Normalized | Display Label |
-|-----------|------------|---------------|
-| `"watched episode"` | `CURRENT` | "Watching" (anime) / "Reading" (manga) |
-| `"read chapter"` | `CURRENT` | "In Progress" (when filter is 'list' or 'all') |
-| `"plans to watch"` | `PLANNING` | "Planning" |
-| `"plans to read"` | `PLANNING` | "Planning" |
-| `"completed"` | `COMPLETED` | "Completed" |
-| `"dropped"` | `DROPPED` | "Dropped" |
-| `"paused"` | `PAUSED` | "Paused" |
-| `"repeating"` | `REPEATING` | "Repeating" |
-
-### Performance Optimizations
-
-- **Request deduplication**: Prevents identical concurrent API calls
-- **Debouncing**: Filter changes are debounced (500ms) to reduce API calls
-- **Caching**: Followed users' scores are cached in localStorage with TTL (10 minutes)
-- **Lazy loading**: Comments are loaded on-demand when expanded
-- **Pagination**: Activities and comments support pagination
-
-### Rate Limiting
-
-The AniList API has rate limits (30 requests per minute). The application:
-- Handles rate limit errors gracefully (HTTP 429)
-- Displays user-friendly error messages
-- Implements request deduplication to minimize API calls
-- Uses caching to reduce redundant requests
-
-## Features Details
-
-### Activity Types
-
-- **List Activities**: Anime/Manga list updates (with color-coded badges)
-  - `ANIME_LIST`: Red badge
-  - `MANGA_LIST`: Blue badge
-- **Text Activities**: Text posts with HTML formatting support
-- **Message Activities**: Direct messages
-
-### Filters
-
-1. **Type Filter**: 
-   - All
-   - List (All) - All list activities
-   - List (Anime) - Anime list activities only
-   - List (Manga) - Manga list activities only
-   - Text
-   - Message
-
-2. **Status Filter** (only available for list activities):
-   - All
-   - In Progress / Watching / Reading (context-dependent)
-   - Planning
-   - Completed
-   - Dropped
-   - Paused
-   - Repeating
-
-3. **Sort Options**:
-   - Date (newest first)
-   - Likes (most liked first)
-   - Replies (most commented first)
-
-### User Features
-
-- **User Statistics**: Display anime/manga counts, mean scores, episodes/chapters read
-- **Saved Users**: Recently searched users are saved for quick access
-- **Per-User Filters**: Filter preferences are saved per user
-- **Theme Preferences**: Color theme and background image preferences are saved
-
-### Social Features (Requires Login)
-
-- **View Followed Users' Scores**: See how followed users rated a specific anime/manga
-- **View User Activities**: Click on a user's score to see their list activities for that media
-- **Like/Unlike**: Like activities and comments
-- **Persistent Likes**: Liked status persists across page refreshes
-
-### Customization
-
-- **Color Themes**: Multiple predefined color palettes
-- **Custom Background**: Set custom background image URL
-- **Dark Mode**: Toggle between light and dark themes
-- **Translucency**: Background images with translucent overlays
+- `/api/weather` - Get weather data for a city (WeatherAPI.com or wttr.in fallback)
+- `/api/cities/search` - Search for cities (WeatherAPI.com Search API or Nominatim fallback)
 
 ## Environment Variables
 
-The application uses the following environment variables (configured in `docker-compose.yml`):
+The application uses the following environment variables:
 
-### Development
+### Development (Docker)
 - `NODE_ENV=development`
-- `DATABASE_URL=postgresql://dev:dev@infra_postgres:5432/dev`
+- `DATABASE_URL=postgresql://dev:dev@infra_postgres:5432/dev` (optional)
 - `CHOKIDAR_USEPOLLING=true` - Enable file polling for hot reload
 - `CHOKIDAR_INTERVAL=1000` - Polling interval in milliseconds
 - `WATCHPACK_POLLING=true` - Enable Webpack polling
@@ -380,12 +374,22 @@ The application uses the following environment variables (configured in `docker-
 - `ANILIST_CLIENT_SECRET` - Your AniList OAuth Client Secret
 - `ANILIST_REDIRECT_URI` - OAuth redirect URI (default: `http://localhost:3000/api/anilist/auth/callback`)
 
+### WeatherAPI.com (Optional)
+- `WEATHER_API_KEY` - Your WeatherAPI.com API key (see [WEATHER_API_SETUP.md](./WEATHER_API_SETUP.md))
+
 ## Building for Production
 
 ```bash
 npm run build
 npm start
 ```
+
+For Docker production deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+## Documentation
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Docker deployment guide
+- [WEATHER_API_SETUP.md](./WEATHER_API_SETUP.md) - WeatherAPI.com setup instructions
 
 ## License
 

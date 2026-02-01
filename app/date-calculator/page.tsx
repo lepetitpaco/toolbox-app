@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import styles from './date-calculator.module.css';
 
 interface ParsedDuration {
@@ -549,6 +550,9 @@ export default function DateCalculatorPage() {
 
   return (
     <div className={styles.container}>
+      <Link href="/" className={styles.backButton}>
+        ← Retour
+      </Link>
       <h1 className={styles.title}>🕐 Outil de Dates</h1>
 
       {/* Section 1: Calcul de date */}

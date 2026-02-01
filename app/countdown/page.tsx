@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from './countdown.module.css';
 
 export default function CountdownPage() {
@@ -143,6 +144,9 @@ export default function CountdownPage() {
 
   return (
     <div className={styles.container}>
+      <Link href="/" className={styles.backButton}>
+        ← Retour
+      </Link>
       <div className={styles.countdownContainer}>
         <h1 className={styles.title}>Countdown</h1>
         

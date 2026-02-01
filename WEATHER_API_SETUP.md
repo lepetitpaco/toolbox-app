@@ -3,10 +3,10 @@
 ## Pourquoi WeatherAPI.com ?
 
 L'application utilise **WeatherAPI.com** (https://www.weatherapi.com/) pour :
-- ✅ **Recherche de villes** : Utilise Nominatim (OpenStreetMap) pour la recherche de villes
+- ✅ **Recherche de villes** : Utilise l'API Search/Autocomplete de WeatherAPI.com pour une recherche précise avec support des IDs
 - ✅ **Prévisions détaillées** : Prévisions sur 5 jours avec données complètes
 - ✅ **Support français** : Toutes les descriptions en français
-- ✅ **Fallback automatique** : Si pas de clé API, utilise wttr.in comme avant
+- ✅ **Fallback automatique** : Si pas de clé API, utilise Nominatim (OpenStreetMap) pour la recherche et wttr.in pour les données météo
 
 ## Obtenir une clé API gratuite
 

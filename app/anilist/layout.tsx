@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { ApiRequestProvider, useApiRequest } from './contexts/ApiRequestContext';
 import { ToastProvider } from './contexts/ToastContext';
 import styles from './anilist.module.css';
@@ -356,6 +357,9 @@ function AniListLayoutContent({
 
   return (
     <div className={styles.container}>
+      <Link href="/" className={styles.backButton}>
+        ← Retour
+      </Link>
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <h1 className={styles.title}>AniList Tools</h1>

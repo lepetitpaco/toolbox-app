@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import styles from './encoder.module.css';
 
 type EncodeType = 'base64' | 'url' | 'html' | 'md5' | 'sha256' | 'sha512';
@@ -134,6 +135,9 @@ export default function EncoderPage() {
 
   return (
     <div className={styles.container}>
+      <Link href="/" className={styles.backButton}>
+        ← Retour
+      </Link>
       <div className={styles.header}>
         <h1 className={styles.title}>Encoder / Decoder</h1>
         <div className={styles.controls}>
