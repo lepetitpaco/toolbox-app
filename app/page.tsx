@@ -15,6 +15,7 @@ interface App {
   size: number;
 }
 
+
 const defaultApps: Omit<App, "x" | "y" | "size">[] = [
   {
     id: "anilist-home",
@@ -29,6 +30,13 @@ const defaultApps: Omit<App, "x" | "y" | "size">[] = [
     path: "/anilist/search",
     icon: "🔍",
     color: "#667eea",
+  },
+  {
+    id: "meteo",
+    name: "Météo",
+    path: "/meteo",
+    icon: "🌤️",
+    color: "#3b82f6",
   },
   {
     id: "countdown",
@@ -74,21 +82,26 @@ const defaultApps: Omit<App, "x" | "y" | "size">[] = [
   },
 ];
 
-function getDefaultLayout(): App[] {
-  const gridCols = 4;
-  const spacing = 140;
-  const startX = 50;
-  const startY = 100;
+function getDefaultLayout(): { apps: App[] } {
+  // Grille fixe de 20px pour un alignement précis
+  const GRID_SIZE = 20;
+  const APP_SIZE = 100;
+  const APP_SPACING = 120; // Taille + marge (100 + 20)
+  const gridCols = Math.floor((typeof window !== "undefined" ? window.innerWidth : 1920) / APP_SPACING) || 4;
+  const startX = Math.floor(50 / GRID_SIZE) * GRID_SIZE; // Aligné sur la grille
+  const startY = Math.floor(100 / GRID_SIZE) * GRID_SIZE; // Aligné sur la grille
   
-  return defaultApps.map((app, index) => ({
+  const apps = defaultApps.map((app, index) => ({
     ...app,
-    x: startX + (index % gridCols) * spacing,
-    y: startY + Math.floor(index / gridCols) * spacing,
-    size: 100,
+    x: startX + (index % gridCols) * APP_SPACING,
+    y: startY + Math.floor(index / gridCols) * APP_SPACING,
+    size: APP_SIZE,
   }));
+
+  return { apps };
 }
 
-function loadLayout(): App[] {
+function loadLayout(): { apps: App[] } {
   if (typeof window === "undefined") return getDefaultLayout();
   
   const saved = localStorage.getItem("toolbox-layout");
@@ -96,18 +109,34 @@ function loadLayout(): App[] {
   
   try {
     const parsed = JSON.parse(saved);
-    // Merge avec les apps par défaut au cas où de nouvelles apps sont ajoutées
-    const savedIds = new Set(parsed.map((a: App) => a.id));
     const defaultLayout = getDefaultLayout();
-    const merged = [...parsed];
     
-    defaultLayout.forEach((app) => {
-      if (!savedIds.has(app.id)) {
-        merged.push(app);
+    // Gérer les anciens layouts qui n'ont que des apps
+    if (Array.isArray(parsed)) {
+      // Ancien format - seulement des apps
+      const savedIds = new Set(parsed.map((a: App) => a.id));
+      const merged = [...parsed];
+      
+      defaultLayout.apps.forEach((app) => {
+        if (!savedIds.has(app.id)) {
+          merged.push(app);
+        }
+      });
+      
+      return { apps: merged };
+    }
+    
+    // Format avec apps (et peut-être widgets qu'on ignore)
+    const savedAppIds = new Set((parsed.apps || []).map((a: App) => a.id));
+    const mergedApps = [...(parsed.apps || [])];
+    
+    defaultLayout.apps.forEach((app) => {
+      if (!savedAppIds.has(app.id)) {
+        mergedApps.push(app);
       }
     });
     
-    return merged;
+    return { apps: mergedApps };
   } catch {
     return getDefaultLayout();
   }
@@ -115,16 +144,17 @@ function loadLayout(): App[] {
 
 function saveLayout(apps: App[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem("toolbox-layout", JSON.stringify(apps));
+  localStorage.setItem("toolbox-layout", JSON.stringify({ apps }));
 }
 
 export default function Home() {
   // Utiliser le layout par défaut pour l'hydratation (identique serveur/client)
-  const [apps, setApps] = useState<App[]>(getDefaultLayout);
+  const defaultLayout = getDefaultLayout();
+  const [apps, setApps] = useState<App[]>(defaultLayout.apps);
   const [isEditing, setIsEditing] = useState(false);
   const [currentTime, setCurrentTime] = useState("--:--:--");
-  const [draggedApp, setDraggedApp] = useState<string | null>(null);
-  const [resizedApp, setResizedApp] = useState<string | null>(null);
+  const [draggedItem, setDraggedItem] = useState<{ id: string; type: "app" } | null>(null);
+  const [resizedItem, setResizedItem] = useState<{ id: string; type: "app" } | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, size: 0 });
   const [mounted, setMounted] = useState(false);
@@ -133,25 +163,8 @@ export default function Home() {
   // Charger le layout depuis localStorage après le montage
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem("toolbox-layout");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const savedIds = new Set(parsed.map((a: App) => a.id));
-        const defaultLayout = getDefaultLayout();
-        const merged = [...parsed];
-        
-        defaultLayout.forEach((app) => {
-          if (!savedIds.has(app.id)) {
-            merged.push(app);
-          }
-        });
-        
-        setApps(merged);
-      } catch {
-        // En cas d'erreur, garder le layout par défaut
-      }
-    }
+    const layout = loadLayout();
+    setApps(layout.apps);
   }, []);
 
   useEffect(() => {
@@ -172,28 +185,36 @@ export default function Home() {
   }, [mounted]);
 
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditing && mounted) {
       saveLayout(apps);
     }
-  }, [apps, isEditing]);
+  }, [apps, isEditing, mounted]);
 
-  const handleMouseDown = (e: React.MouseEvent, appId: string, type: "drag" | "resize") => {
+  const handleMouseDown = (
+    e: React.MouseEvent,
+    id: string,
+    type: "app",
+    action: "drag" | "resize"
+  ) => {
     if (!isEditing) return;
     
     e.preventDefault();
     e.stopPropagation();
-    const app = apps.find((a) => a.id === appId);
-    if (!app) return;
+    
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
 
-    if (type === "drag") {
-      setDraggedApp(appId);
-      const containerRect = containerRef.current?.getBoundingClientRect();
-      if (containerRect) {
-        const wrapperRect = (e.currentTarget as HTMLElement).closest(`.${styles.appWrapper}`)?.getBoundingClientRect();
-        if (wrapperRect) {
+    if (action === "drag") {
+      setDraggedItem({ id, type });
+      const app = apps.find((a) => a.id === id);
+      if (app) {
+        const wrapperElement = (e.currentTarget as HTMLElement).closest(`.${styles.appWrapper}`) as HTMLElement;
+        if (wrapperElement) {
+          const wrapperRect = wrapperElement.getBoundingClientRect();
+          // Calculer l'offset par rapport au point de clic dans l'élément
           setDragOffset({
-            x: e.clientX - wrapperRect.left - app.size / 2,
-            y: e.clientY - wrapperRect.top - app.size / 2,
+            x: e.clientX - wrapperRect.left,
+            y: e.clientY - wrapperRect.top,
           });
         } else {
           setDragOffset({
@@ -203,48 +224,64 @@ export default function Home() {
         }
       }
     } else {
-      setResizedApp(appId);
-      setResizeStart({
-        x: e.clientX,
-        y: e.clientY,
-        size: app.size,
-      });
+      setResizedItem({ id, type });
+      const app = apps.find((a) => a.id === id);
+      if (app) {
+        setResizeStart({
+          x: e.clientX,
+          y: e.clientY,
+          size: app.size,
+        });
+      }
     }
   };
 
   useEffect(() => {
-    if (!draggedApp && !resizedApp) return;
+    if (!draggedItem && !resizedItem) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       e.preventDefault();
       const containerRect = containerRef.current?.getBoundingClientRect();
       if (!containerRect) return;
 
-      if (draggedApp) {
+      if (draggedItem) {
         setApps((prevApps) =>
           prevApps.map((app) => {
-            if (app.id === draggedApp) {
+            if (app.id === draggedItem.id) {
               const newX = e.clientX - containerRect.left - dragOffset.x;
               const newY = e.clientY - containerRect.top - dragOffset.y;
               const maxX = containerRect.width - app.size;
-              const maxY = containerRect.height - app.size - 20; // 20px pour le nom
+              const maxY = containerRect.height - app.size - 20;
+              const minY = 80; // Empêcher d'aller derrière la top barre (60px + 20px de marge)
+              
+              // Aligner sur la grille de 20px
+              const GRID_SIZE = 20;
+              const snappedX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+              const snappedY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+              
               return {
                 ...app,
-                x: Math.max(0, Math.min(newX, maxX)),
-                y: Math.max(0, Math.min(newY, maxY)),
+                x: Math.max(0, Math.min(snappedX, maxX)),
+                y: Math.max(minY, Math.min(snappedY, maxY)),
               };
             }
             return app;
           })
         );
-      } else if (resizedApp) {
+      } else if (resizedItem) {
         setApps((prevApps) =>
           prevApps.map((app) => {
-            if (app.id === resizedApp) {
+            if (app.id === resizedItem.id) {
               const deltaX = e.clientX - resizeStart.x;
               const deltaY = e.clientY - resizeStart.y;
               const delta = Math.max(deltaX, deltaY);
-              const newSize = Math.max(60, Math.min(150, resizeStart.size + delta));
+              
+              // Resize avec snap sur la grille de 20px
+              const GRID_SIZE = 20;
+              let newSize = resizeStart.size + delta;
+              newSize = Math.round(newSize / GRID_SIZE) * GRID_SIZE;
+              newSize = Math.max(60, Math.min(150, newSize));
+              
               return { ...app, size: newSize };
             }
             return app;
@@ -254,8 +291,8 @@ export default function Home() {
     };
 
     const handleMouseUp = () => {
-      setDraggedApp(null);
-      setResizedApp(null);
+      setDraggedItem(null);
+      setResizedItem(null);
     };
 
     document.addEventListener("mousemove", handleMouseMove, { passive: false });
@@ -265,7 +302,7 @@ export default function Home() {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [draggedApp, resizedApp, dragOffset, resizeStart]);
+  }, [draggedItem, resizedItem, dragOffset, resizeStart, apps]);
 
   return (
     <div className={styles.page}>
@@ -273,16 +310,21 @@ export default function Home() {
         <div className={styles.time}>{currentTime}</div>
         <div className={styles.topBarRight}>
           {isEditing && (
-            <span className={styles.editHint}>Mode édition actif - Déplacez les icônes</span>
+            <>
+              <span className={styles.editHint}>Mode édition actif - Déplacez les icônes</span>
+            </>
           )}
           <button
             className={`${styles.editButton} ${isEditing ? styles.active : ""}`}
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={() => {
+              setIsEditing(!isEditing);
+            }}
             title={isEditing ? "Terminer l'édition" : "Modifier le layout"}
           >
             {isEditing ? "✓" : "✎"}
           </button>
         </div>
+        
       </div>
 
       <main className={styles.main} ref={containerRef}>
@@ -300,7 +342,7 @@ export default function Home() {
               {isEditing ? (
                 <div 
                   className={styles.appIcon}
-                  onMouseDown={(e) => handleMouseDown(e, app.id, "drag")}
+                  onMouseDown={(e) => handleMouseDown(e, app.id, "app", "drag")}
                 >
                   <div
                     className={styles.appIconContainer}
@@ -359,7 +401,7 @@ export default function Home() {
                   className={styles.resizeHandle}
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    handleMouseDown(e, app.id, "resize");
+                    handleMouseDown(e, app.id, "app", "resize");
                   }}
                 />
               )}
