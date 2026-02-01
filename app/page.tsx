@@ -80,6 +80,13 @@ const defaultApps: Omit<App, "x" | "y" | "size">[] = [
     icon: "✨",
     color: "#ec4899",
   },
+  {
+    id: "settings",
+    name: "Settings",
+    path: "/settings",
+    icon: "⚙️",
+    color: "#6b7280",
+  },
 ];
 
 function getDefaultLayout(): { apps: App[] } {
