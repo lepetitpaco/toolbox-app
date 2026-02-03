@@ -94,7 +94,9 @@ function getDefaultLayout(): { apps: App[] } {
   const GRID_SIZE = 20;
   const APP_SIZE = 100;
   const APP_SPACING = 120; // Taille + marge (100 + 20)
-  const gridCols = Math.floor((typeof window !== "undefined" ? window.innerWidth : 1920) / APP_SPACING) || 4;
+  // Utiliser une valeur par défaut sécurisée pour window.innerWidth
+  const windowWidth = typeof window !== "undefined" && window.innerWidth ? window.innerWidth : 1920;
+  const gridCols = Math.max(1, Math.floor(windowWidth / APP_SPACING)) || 4;
   const startX = Math.floor(50 / GRID_SIZE) * GRID_SIZE; // Aligné sur la grille
   const startY = Math.floor(100 / GRID_SIZE) * GRID_SIZE; // Aligné sur la grille
   
@@ -106,6 +108,25 @@ function getDefaultLayout(): { apps: App[] } {
   }));
 
   return { apps };
+}
+
+// Fonction de validation pour s'assurer qu'un objet a toutes les propriétés requises
+function isValidApp(app: any): app is App {
+  return (
+    app &&
+    typeof app === "object" &&
+    typeof app.id === "string" &&
+    typeof app.name === "string" &&
+    typeof app.path === "string" &&
+    typeof app.icon === "string" &&
+    typeof app.color === "string" &&
+    typeof app.x === "number" &&
+    typeof app.y === "number" &&
+    typeof app.size === "number" &&
+    app.x >= 0 &&
+    app.y >= 0 &&
+    app.size > 0
+  );
 }
 
 function loadLayout(): { apps: App[] } {
@@ -121,8 +142,10 @@ function loadLayout(): { apps: App[] } {
     // Gérer les anciens layouts qui n'ont que des apps
     if (Array.isArray(parsed)) {
       // Ancien format - seulement des apps
-      const savedIds = new Set(parsed.map((a: App) => a.id));
-      const merged = [...parsed];
+      // Filtrer et valider les apps sauvegardées
+      const validSavedApps = parsed.filter(isValidApp);
+      const savedIds = new Set(validSavedApps.map((a: App) => a.id));
+      const merged = [...validSavedApps];
       
       defaultLayout.apps.forEach((app) => {
         if (!savedIds.has(app.id)) {
@@ -134,8 +157,11 @@ function loadLayout(): { apps: App[] } {
     }
     
     // Format avec apps (et peut-être widgets qu'on ignore)
-    const savedAppIds = new Set((parsed.apps || []).map((a: App) => a.id));
-    const mergedApps = [...(parsed.apps || [])];
+    const savedApps = parsed.apps || [];
+    // Filtrer et valider les apps sauvegardées
+    const validSavedApps = savedApps.filter(isValidApp);
+    const savedAppIds = new Set(validSavedApps.map((a: App) => a.id));
+    const mergedApps = [...validSavedApps];
     
     defaultLayout.apps.forEach((app) => {
       if (!savedAppIds.has(app.id)) {
@@ -144,14 +170,17 @@ function loadLayout(): { apps: App[] } {
     });
     
     return { apps: mergedApps };
-  } catch {
+  } catch (error) {
+    console.error("Error loading layout from localStorage:", error);
     return getDefaultLayout();
   }
 }
 
 function saveLayout(apps: App[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem("toolbox-layout", JSON.stringify({ apps }));
+  // Filtrer et ne sauvegarder que les apps valides
+  const validApps = apps.filter(isValidApp);
+  localStorage.setItem("toolbox-layout", JSON.stringify({ apps: validApps }));
 }
 
 export default function Home() {
@@ -214,7 +243,7 @@ export default function Home() {
     if (action === "drag") {
       setDraggedItem({ id, type });
       const app = apps.find((a) => a.id === id);
-      if (app) {
+      if (app && isValidApp(app)) {
         const wrapperElement = (e.currentTarget as HTMLElement).closest(`.${styles.appWrapper}`) as HTMLElement;
         if (wrapperElement) {
           const wrapperRect = wrapperElement.getBoundingClientRect();
@@ -225,19 +254,19 @@ export default function Home() {
           });
         } else {
           setDragOffset({
-            x: e.clientX - containerRect.left - app.x,
-            y: e.clientY - containerRect.top - app.y,
+            x: e.clientX - containerRect.left - (app.x ?? 0),
+            y: e.clientY - containerRect.top - (app.y ?? 0),
           });
         }
       }
     } else {
       setResizedItem({ id, type });
       const app = apps.find((a) => a.id === id);
-      if (app) {
+      if (app && isValidApp(app)) {
         setResizeStart({
           x: e.clientX,
           y: e.clientY,
-          size: app.size,
+          size: app.size ?? 100,
         });
       }
     }
@@ -254,11 +283,12 @@ export default function Home() {
       if (draggedItem) {
         setApps((prevApps) =>
           prevApps.map((app) => {
-            if (app.id === draggedItem.id) {
+            if (app.id === draggedItem.id && isValidApp(app)) {
+              const appSize = app.size ?? 100;
               const newX = e.clientX - containerRect.left - dragOffset.x;
               const newY = e.clientY - containerRect.top - dragOffset.y;
-              const maxX = containerRect.width - app.size;
-              const maxY = containerRect.height - app.size - 20;
+              const maxX = containerRect.width - appSize;
+              const maxY = containerRect.height - appSize - 20;
               const minY = 80; // Empêcher d'aller derrière la top barre (60px + 20px de marge)
               
               // Aligner sur la grille de 20px
@@ -278,14 +308,14 @@ export default function Home() {
       } else if (resizedItem) {
         setApps((prevApps) =>
           prevApps.map((app) => {
-            if (app.id === resizedItem.id) {
+            if (app.id === resizedItem.id && isValidApp(app)) {
               const deltaX = e.clientX - resizeStart.x;
               const deltaY = e.clientY - resizeStart.y;
               const delta = Math.max(deltaX, deltaY);
               
               // Resize avec snap sur la grille de 20px
               const GRID_SIZE = 20;
-              let newSize = resizeStart.size + delta;
+              let newSize = (resizeStart.size ?? 100) + delta;
               newSize = Math.round(newSize / GRID_SIZE) * GRID_SIZE;
               newSize = Math.max(60, Math.min(150, newSize));
               
@@ -336,14 +366,14 @@ export default function Home() {
 
       <main className={styles.main} ref={containerRef}>
         <div className={styles.appsContainer}>
-          {apps.map((app) => (
+          {apps.filter(isValidApp).map((app) => (
             <div
               key={app.id}
               className={`${styles.appWrapper} ${isEditing ? styles.editing : ""}`}
               style={{
-                left: `${app.x}px`,
-                top: `${app.y}px`,
-                width: `${app.size}px`,
+                left: `${app.x ?? 0}px`,
+                top: `${app.y ?? 0}px`,
+                width: `${app.size ?? 100}px`,
               }}
             >
               {isEditing ? (
@@ -354,52 +384,52 @@ export default function Home() {
                   <div
                     className={styles.appIconContainer}
                     style={{
-                      width: `${app.size}px`,
-                      height: `${app.size}px`,
-                      backgroundColor: `${app.color}15`,
-                      borderColor: `${app.color}30`,
+                      width: `${app.size ?? 100}px`,
+                      height: `${app.size ?? 100}px`,
+                      backgroundColor: `${app.color ?? "#000000"}15`,
+                      borderColor: `${app.color ?? "#000000"}30`,
                     }}
                   >
                     <div
                       className={styles.appIconEmoji}
-                      style={{ color: app.color, fontSize: `${app.size * 0.3}px` }}
+                      style={{ color: app.color ?? "#000000", fontSize: `${(app.size ?? 100) * 0.3}px` }}
                     >
-                      {app.icon}
+                      {app.icon ?? "❓"}
                     </div>
                   </div>
                   <span
                     className={styles.appName}
-                    style={{ fontSize: `${Math.max(10, app.size * 0.12)}px` }}
+                    style={{ fontSize: `${Math.max(10, (app.size ?? 100) * 0.12)}px` }}
                   >
-                    {app.name}
+                    {app.name ?? "Unknown"}
                   </span>
                 </div>
               ) : (
                 <Link
-                  href={app.path}
+                  href={app.path ?? "/"}
                   className={styles.appIcon}
                 >
                   <div
                     className={styles.appIconContainer}
                     style={{
-                      width: `${app.size}px`,
-                      height: `${app.size}px`,
-                      backgroundColor: `${app.color}15`,
-                      borderColor: `${app.color}30`,
+                      width: `${app.size ?? 100}px`,
+                      height: `${app.size ?? 100}px`,
+                      backgroundColor: `${app.color ?? "#000000"}15`,
+                      borderColor: `${app.color ?? "#000000"}30`,
                     }}
                   >
                     <div
                       className={styles.appIconEmoji}
-                      style={{ color: app.color, fontSize: `${app.size * 0.3}px` }}
+                      style={{ color: app.color ?? "#000000", fontSize: `${(app.size ?? 100) * 0.3}px` }}
                     >
-                      {app.icon}
+                      {app.icon ?? "❓"}
                     </div>
                   </div>
                   <span
                     className={styles.appName}
-                    style={{ fontSize: `${Math.max(10, app.size * 0.12)}px` }}
+                    style={{ fontSize: `${Math.max(10, (app.size ?? 100) * 0.12)}px` }}
                   >
-                    {app.name}
+                    {app.name ?? "Unknown"}
                   </span>
                 </Link>
               )}
